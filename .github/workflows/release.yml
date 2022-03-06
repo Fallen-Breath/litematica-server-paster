@@ -124,7 +124,7 @@ jobs:
           files-primary: build/libs/!(*-@(dev|sources)).jar
           files-secondary: ''
 
-          name: ${{ format('FabricModTemplate v{0} for mc{1}', steps.mod_version.outputs.value, steps.minecraft_version.outputs.value) }}
+          name: ${{ format('Litematica Server Paster v{0} for mc{1}', steps.mod_version.outputs.value, steps.minecraft_version.outputs.value) }}
           version: ${{ format('mc{0}-v{1}', steps.minecraft_version.outputs.value, steps.mod_version.outputs.value) }}
           version-type: release
           changelog: ${{ format('{0}{1}', github.event.release.body, steps.get_release.outputs.body) }}  # one of them should be an empty string (null)
