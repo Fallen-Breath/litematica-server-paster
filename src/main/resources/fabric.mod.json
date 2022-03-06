@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "id": "template_mod",
+  "id": "litematica-server-paster",
   "version": "${version}",
 
-  "name": "template_mod",
-  "description": "",
+  "name": "Litematica Server Paster",
+  "description": "Let Litematica be able to paste tile entity data in a server",
   "authors": [
     "Fallen_Breath"
   ],
@@ -13,22 +13,20 @@
     "sources": "https://github.com/"
   },
 
-  "icon": "assets/template_mod/icon.png",
+  "icon": "assets/lmspaster/icon.png",
 
   "environment": "*",
   "entrypoints": {
     "main": [
+      "me.fallenbreath.lmspaster.LitematicaServerPasterMod"
     ]
   },
   "mixins": [
-    "template_mod.mixins.json"
+    "lmspaster.mixins.json"
   ],
 
   "depends": {
     "fabricloader": ">=0.7.1",
     "minecraft": "1.15.x"
-  },
-  "suggests": {
-    "flamingo": "*"
   }
 }

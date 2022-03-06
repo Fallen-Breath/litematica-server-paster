@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "me.fallenbreath.lmspaster.mixins",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "network.CustomPayloadC2SPacketAccessor",
+    "network.CustomPayloadS2CPacketAccessor",
+    "network.ServerPlayNetworkHandlerAccessor",
+    "network.ServerPlayNetworkHandlerMixin"
+  ],
+  "client": [
+    "TaskPasteSchematicSetblockMixin",
+    "network.ClientPlayNetworkHandlerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
