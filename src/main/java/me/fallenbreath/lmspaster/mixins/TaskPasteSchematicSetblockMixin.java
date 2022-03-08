@@ -149,8 +149,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 				NbtCompound tag = this.currentEntity.writeNbt(new NbtCompound());
 
 				// like net.minecraft.client.Keyboard.copyEntity
-				tag.remove("UUIDMost");
-				tag.remove("UUIDLeast");
+				tag.remove("UUID");
 				tag.remove("Pos");
 				tag.remove("Dimension");
 
