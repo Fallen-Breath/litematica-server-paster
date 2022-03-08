@@ -25,6 +25,7 @@ import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Collection;
+import java.util.function.Consumer;
 
 @Mixin(TaskPasteSchematicPerChunkCommand.class)
 public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematicPerChunkBase
@@ -63,13 +64,13 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 	private String customCommand = null;
 
 	@Inject(method = "pasteBlock", at = @At("HEAD"), remap = false)
-	private void recordCurrentSchematicChunk(BlockPos pos, WorldChunk schematicChunk, Chunk clientChunk, CallbackInfo ci)
+	private void recordCurrentSchematicChunk(BlockPos pos, WorldChunk schematicChunk, Chunk clientChunk, boolean ignoreLimit, CallbackInfo ci)
 	{
 		this.currentSchematicChunk = schematicChunk;
 	}
 
 	@Inject(
-			method = "queueSetBlockCommand",
+			method = "queueSetBlockCommand(IIILnet/minecraft/block/BlockState;Ljava/util/function/Consumer;)V",
 			slice = @Slice(
 					from = @At(
 							value = "FIELD",
@@ -79,13 +80,12 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 			),
 			at = @At(
 					value = "INVOKE",
-					target = "Ljava/util/Queue;offer(Ljava/lang/Object;)Z",
+					target = "Ljava/util/function/Consumer;accept(Ljava/lang/Object;)V",
 					remap = false,
 					ordinal = 0
-			),
-			remap = false
+			)
 	)
-	private void useCustomLongChatPacketToPasteBlockNbtDirectly(int x, int y, int z, BlockState state, CallbackInfo ci)
+	private void useCustomLongChatPacketToPasteBlockNbtDirectly(int x, int y, int z, BlockState state, Consumer<String> commandHandler, CallbackInfo ci)
 	{
 		// only works when PasteNbtBehavior equals NONE
 		if (Configs.Generic.PASTE_NBT_BEHAVIOR.getOptionListValue() != PasteNbtBehavior.NONE)
@@ -116,7 +116,7 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 	}
 
 	@ModifyArg(
-			method = "queueSetBlockCommand",
+			method = "queueSetBlockCommand(IIILnet/minecraft/block/BlockState;Ljava/util/function/Consumer;)V",
 			slice = @Slice(
 					from = @At(
 							value = "FIELD",
@@ -126,11 +126,10 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 			),
 			at = @At(
 					value = "INVOKE",
-					target = "Ljava/util/Queue;offer(Ljava/lang/Object;)Z",
+					target = "Ljava/util/function/Consumer;accept(Ljava/lang/Object;)V",
 					ordinal = 0,
 					remap = false
-			),
-			remap = false
+			)
 	)
 	private Object useCustomLongChatPacketToPasteBlockNbtDirectly_setBlock(Object obj)
 	{
