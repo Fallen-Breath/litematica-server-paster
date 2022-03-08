@@ -14,10 +14,14 @@ import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.WorldChunk;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.*;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(TaskPasteSchematicPerChunkCommand.class)
@@ -28,20 +32,10 @@ public abstract class TaskPasteSchematicSetblockMixin
 
 	private Chunk currentSchematicChunk;
 
-	@ModifyVariable(
-			method = "processBox",
-			at = @At(
-					value = "STORE",
-					target = "Lfi/dy/masa/litematica/world/ChunkProviderSchematic;getChunk(II)Lfi/dy/masa/litematica/world/ChunkSchematic;",
-					remap = false
-			),
-			remap = false,
-			ordinal = 0
-	)
-	private Chunk recordCurrentSchematicChunk(Chunk chunkSchematic)
+	@Inject(method = "pasteBlock", at = @At("HEAD"), remap = false)
+	private void recordCurrentSchematicChunk(BlockPos pos, WorldChunk schematicChunk, Chunk clientChunk, CallbackInfo ci)
 	{
-		this.currentSchematicChunk = chunkSchematic;
-		return chunkSchematic;
+		this.currentSchematicChunk = schematicChunk;
 	}
 
 	@Nullable
@@ -115,32 +109,24 @@ public abstract class TaskPasteSchematicSetblockMixin
 
 	private Entity currentEntity;
 
-	@ModifyVariable(
-			method = "summonEntities",
-			at = @At(
-					value = "STORE",
-					target = "Ljava/util/Iterator;next()Ljava/lang/Object;",
-					remap = false
-			),
-			remap = false,
-			ordinal = 0
-	)
-	private Entity recordCurrentEntity(Entity entity)
+	@Inject(method = "summonEntity", at = @At("HEAD"), remap = false)
+	private void recordCurrentEntity(Entity entity, CallbackInfo ci)
 	{
 		this.currentEntity = entity;
-		return entity;
 	}
 
-	@ModifyArg(
-			method = "summonEntities",
+	@ModifyVariable(
+			method = "summonEntity",
 			at = @At(
-					value = "INVOKE",
-					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;sendCommand(Ljava/lang/String;Lnet/minecraft/client/network/ClientPlayerEntity;)V",
-					remap = true
+					value = "STORE",
+					target = "Ljava/lang/String;format(Ljava/util/Locale;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;",
+					ordinal = 0,
+					remap = false
 			),
+			ordinal = 1,
 			remap = false
 	)
-	private String useCustomLongChatPacketToPasteEntityNbtDirectly(String string)
+	private String useCustomLongChatPacketToPasteEntityNbtDirectly(String baseCommand)
 	{
 		if (ClientNetworkHandler.doesServerAcceptsLongChat())
 		{
@@ -154,7 +140,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 				tag.remove("Dimension");
 
 				String tagString = tag.toString();
-				String command = string + " " + tagString;
+				String command = baseCommand + " " + tagString;
 				if (ClientNetworkHandler.canSendCommand(command))
 				{
 					LitematicaServerPasterMod.LOGGER.info("Summoning entity {} with nbt tag", this.currentEntity.getType().getName().getString());
@@ -162,6 +148,6 @@ public abstract class TaskPasteSchematicSetblockMixin
 				}
 			}
 		}
-		return string;
+		return baseCommand;
 	}
 }
