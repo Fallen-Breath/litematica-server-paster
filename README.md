@@ -2,7 +2,7 @@
 
 [![Modrinth](https://img.shields.io/modrinth/dt/HCbarMw6?label=Modrinth%20Downloads)](https://modrinth.com/mod/litematica-server-paster)
 
-Let Litematica be able to paste tile entity data of block / entity data in a server
+Let [Litematica](https://github.com/maruohon/litematica) be able to paste tile entity data of block / entity data in a server
 
 By using a custom chat packet to bypass the chat length limit so the client and simply append the tile entity or the entity nbt tag to the `/setblock` or the `/summon` command
 
