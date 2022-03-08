@@ -2,10 +2,10 @@ package me.fallenbreath.lmspaster.network;
 
 import io.netty.buffer.Unpooled;
 import me.fallenbreath.lmspaster.util.RegistryUtil;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.c2s.play.CustomPayloadC2SPacket;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.PacketByteBuf;
 
 import java.util.function.Consumer;
 

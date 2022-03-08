@@ -2,8 +2,8 @@ package me.fallenbreath.lmspaster.network;
 
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
 import me.fallenbreath.lmspaster.mixins.network.ServerPlayNetworkHandlerAccessor;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.PacketByteBuf;
 
 import java.util.Objects;
 

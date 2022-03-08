@@ -4,7 +4,7 @@ import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.util.PacketByteBuf;
+import net.minecraft.network.PacketByteBuf;
 
 import java.nio.charset.StandardCharsets;
 
