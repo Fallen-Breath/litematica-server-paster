@@ -7,7 +7,6 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
-import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -38,8 +37,14 @@ public abstract class ClientPlayNetworkHandlerMixin
 	}
 
 	@Inject(method = "onGameJoin", at = @At("RETURN"))
-	private void playerJoinClientHook$lmspaster(GameJoinS2CPacket packet, CallbackInfo ci)
+	private void playerJoinClientHookOnGameJoin$lmspaster(CallbackInfo ci)
 	{
-		ClientNetworkHandler.onGameJoin((ClientPlayNetworkHandler)(Object)this);
+		ClientNetworkHandler.sendHiToTheServer((ClientPlayNetworkHandler)(Object)this);
+	}
+
+	@Inject(method = "onPlayerRespawn", at = @At("RETURN"))
+	private void playerJoinClientHookOnPlayerRespawn$lmspaster(CallbackInfo ci)
+	{
+		ClientNetworkHandler.sendHiToTheServer((ClientPlayNetworkHandler)(Object)this);
 	}
 }
