@@ -1,9 +1,11 @@
 package me.fallenbreath.lmspaster.mixins;
 
-import com.google.common.base.Strings;
 import fi.dy.masa.litematica.config.Configs;
+import fi.dy.masa.litematica.scheduler.tasks.TaskPasteSchematicPerChunkBase;
 import fi.dy.masa.litematica.scheduler.tasks.TaskPasteSchematicPerChunkCommand;
+import fi.dy.masa.litematica.schematic.placement.SchematicPlacement;
 import fi.dy.masa.litematica.util.PasteNbtBehavior;
+import fi.dy.masa.malilib.util.LayerRange;
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
 import me.fallenbreath.lmspaster.network.ClientNetworkHandler;
 import net.minecraft.block.BlockState;
@@ -16,21 +18,49 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.WorldChunk;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Collection;
+
 @Mixin(TaskPasteSchematicPerChunkCommand.class)
-public abstract class TaskPasteSchematicSetblockMixin
+public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematicPerChunkBase
 {
-	@Shadow(remap = false)
-	protected abstract void sendCommandToServer(String command, ClientPlayerEntity player);
+	@Shadow(remap = false) @Final protected String setBlockCommand;
 
 	private Chunk currentSchematicChunk;
+
+	public TaskPasteSchematicSetblockMixin(Collection<SchematicPlacement> placements, LayerRange range, boolean changedBlocksOnly)
+	{
+		super(placements, range, changedBlocksOnly);
+	}
+
+	private static final String CUSTOM_COMMAND_PREFIX = String.format("##%s##", LitematicaServerPasterMod.MOD_ID);
+
+	@Override
+	protected void sendCommandToServer(String command, ClientPlayerEntity player)
+	{
+		if (command.startsWith(CUSTOM_COMMAND_PREFIX))
+		{
+			command = command.substring(CUSTOM_COMMAND_PREFIX.length());
+			if (command.charAt(0) != '/')
+			{
+				command = '/' + command;
+			}
+			ClientNetworkHandler.sendCommand(command);
+		}
+		else
+		{
+			// origin behavior
+			super.sendCommandToServer(command, player);
+		}
+	}
+
+	@Nullable
+	private String customCommand = null;
 
 	@Inject(method = "pasteBlock", at = @At("HEAD"), remap = false)
 	private void recordCurrentSchematicChunk(BlockPos pos, WorldChunk schematicChunk, Chunk clientChunk, CallbackInfo ci)
@@ -38,46 +68,24 @@ public abstract class TaskPasteSchematicSetblockMixin
 		this.currentSchematicChunk = schematicChunk;
 	}
 
-	@Nullable
-	private String customCommand = null;
-
-	@Redirect(
-			method = "sendCommand",
-			at = @At(
-					value = "INVOKE",
-					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;sendCommandToServer(Ljava/lang/String;Lnet/minecraft/client/network/ClientPlayerEntity;)V",
-					remap = true
-			),
-			remap = false
-	)
-	private void modifyCommand(TaskPasteSchematicPerChunkCommand instance, String command, ClientPlayerEntity player)
-	{
-		if (!Strings.isNullOrEmpty(this.customCommand))
-		{
-			if (this.customCommand.charAt(0) != '/')
-			{
-				this.customCommand = '/' + this.customCommand;
-			}
-			ClientNetworkHandler.sendCommand(this.customCommand);
-			this.customCommand = null;
-		}
-		else
-		{
-			// origin behavior
-			this.sendCommandToServer(command, player);
-		}
-	}
-
 	@Inject(
-			method = "sendSetBlockCommand",
+			method = "queueSetBlockCommand",
+			slice = @Slice(
+					from = @At(
+							value = "FIELD",
+							target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;setBlockCommand:Ljava/lang/String;",
+							remap = false
+					)
+			),
 			at = @At(
 					value = "INVOKE",
-					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;sendCommand(Ljava/lang/String;Lnet/minecraft/client/network/ClientPlayerEntity;)V",
-					remap = true
+					target = "Ljava/util/Queue;offer(Ljava/lang/Object;)Z",
+					remap = false,
+					ordinal = 0
 			),
 			remap = false
 	)
-	private void useCustomLongChatPacketToPasteBlockNbtDirectly(int x, int y, int z, BlockState state, ClientPlayerEntity player, CallbackInfo ci)
+	private void useCustomLongChatPacketToPasteBlockNbtDirectly(int x, int y, int z, BlockState state, CallbackInfo ci)
 	{
 		// only works when PasteNbtBehavior equals NONE
 		if (Configs.Generic.PASTE_NBT_BEHAVIOR.getOptionListValue() != PasteNbtBehavior.NONE)
@@ -89,9 +97,9 @@ public abstract class TaskPasteSchematicSetblockMixin
 			BlockEntity blockEntity = this.currentSchematicChunk.getBlockEntity(new BlockPos(x, y, z));
 			if (blockEntity != null)
 			{
-				String cmdName = Configs.Generic.PASTE_COMMAND_SETBLOCK.getStringValue();
+				String cmdName = this.setBlockCommand;
 				String stateString = BlockArgumentParser.stringifyBlockState(state);
-				NbtCompound tag = blockEntity.writeNbt(new NbtCompound());
+				NbtCompound tag = blockEntity.createNbt();
 				tag.remove("id");
 				tag.remove("x");
 				tag.remove("y");
@@ -105,6 +113,53 @@ public abstract class TaskPasteSchematicSetblockMixin
 				}
 			}
 		}
+	}
+
+	@ModifyArg(
+			method = "queueSetBlockCommand",
+			slice = @Slice(
+					from = @At(
+							value = "FIELD",
+							target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;setBlockCommand:Ljava/lang/String;",
+							remap = false
+					)
+			),
+			at = @At(
+					value = "INVOKE",
+					target = "Ljava/util/Queue;offer(Ljava/lang/Object;)Z",
+					ordinal = 0,
+					remap = false
+			),
+			remap = false
+	)
+	private Object useCustomLongChatPacketToPasteBlockNbtDirectly_setBlock(Object obj)
+	{
+		return this.useCustomLongChatIfPossible(obj);
+	}
+
+	@ModifyArg(
+			method = "summonEntity",
+			at = @At(
+					value = "INVOKE",
+					target = "Ljava/util/Queue;offer(Ljava/lang/Object;)Z",
+					ordinal = 0,
+					remap = false
+			),
+			remap = false
+	)
+	private Object useCustomLongChatPacketToPasteEntityNbtDirectly(Object obj)
+	{
+		return this.useCustomLongChatIfPossible(obj);
+	}
+
+	private Object useCustomLongChatIfPossible(Object obj)
+	{
+		if (this.customCommand != null && obj instanceof String)
+		{
+			obj = CUSTOM_COMMAND_PREFIX + this.customCommand;
+			this.customCommand = null;
+		}
+		return obj;
 	}
 
 	private Entity currentEntity;
