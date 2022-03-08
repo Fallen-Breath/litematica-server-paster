@@ -26,7 +26,7 @@ public class ClientNetworkHandler
 		}
 	}
 
-	public static void onGameJoin(ClientPlayNetworkHandler clientPlayNetworkHandler)
+	public static void sendHiToTheServer(ClientPlayNetworkHandler clientPlayNetworkHandler)
 	{
 		serverModded = false;
 		clientPlayNetworkHandler.sendPacket(Network.C2S.packet(buf -> buf.
