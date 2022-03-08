@@ -1,7 +1,8 @@
 package me.fallenbreath.lmspaster.mixins;
 
+import com.google.common.base.Strings;
 import fi.dy.masa.litematica.config.Configs;
-import fi.dy.masa.litematica.scheduler.tasks.TaskPasteSchematicSetblock;
+import fi.dy.masa.litematica.scheduler.tasks.TaskPasteSchematicPerChunkCommand;
 import fi.dy.masa.litematica.util.PasteNbtBehavior;
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
 import me.fallenbreath.lmspaster.network.ClientNetworkHandler;
@@ -15,15 +16,16 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.Chunk;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(TaskPasteSchematicSetblock.class)
+@Mixin(TaskPasteSchematicPerChunkCommand.class)
 public abstract class TaskPasteSchematicSetblockMixin
 {
+	@Shadow(remap = false)
+	protected abstract void sendCommandToServer(String command, ClientPlayerEntity player);
+
 	private Chunk currentSchematicChunk;
 
 	@ModifyVariable(
@@ -49,22 +51,26 @@ public abstract class TaskPasteSchematicSetblockMixin
 			method = "sendCommand",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendChatMessage(Ljava/lang/String;)V",
+					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;sendCommandToServer(Ljava/lang/String;Lnet/minecraft/client/network/ClientPlayerEntity;)V",
 					remap = true
 			),
 			remap = false
 	)
-	private void modifyCommand(ClientPlayerEntity instance, String message)
+	private void modifyCommand(TaskPasteSchematicPerChunkCommand instance, String command, ClientPlayerEntity player)
 	{
-		if (this.customCommand != null)
+		if (!Strings.isNullOrEmpty(this.customCommand))
 		{
+			if (this.customCommand.charAt(0) != '/')
+			{
+				this.customCommand = '/' + this.customCommand;
+			}
 			ClientNetworkHandler.sendCommand(this.customCommand);
 			this.customCommand = null;
 		}
 		else
 		{
 			// origin behavior
-			instance.sendChatMessage(message);
+			this.sendCommandToServer(command, player);
 		}
 	}
 
@@ -72,7 +78,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 			method = "sendSetBlockCommand",
 			at = @At(
 					value = "INVOKE",
-					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicSetblock;sendCommand(Ljava/lang/String;Lnet/minecraft/client/network/ClientPlayerEntity;)V",
+					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;sendCommand(Ljava/lang/String;Lnet/minecraft/client/network/ClientPlayerEntity;)V",
 					remap = true
 			),
 			remap = false
@@ -125,16 +131,16 @@ public abstract class TaskPasteSchematicSetblockMixin
 		return entity;
 	}
 
-	@Redirect(
+	@ModifyArg(
 			method = "summonEntities",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendChatMessage(Ljava/lang/String;)V",
+					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;sendCommand(Ljava/lang/String;Lnet/minecraft/client/network/ClientPlayerEntity;)V",
 					remap = true
 			),
 			remap = false
 	)
-	private void useCustomLongChatPacketToPasteEntityNbtDirectly(ClientPlayerEntity player, String string)
+	private String useCustomLongChatPacketToPasteEntityNbtDirectly(String string)
 	{
 		if (ClientNetworkHandler.doesServerAcceptsLongChat())
 		{
@@ -153,12 +159,10 @@ public abstract class TaskPasteSchematicSetblockMixin
 				if (ClientNetworkHandler.canSendCommand(command))
 				{
 					LitematicaServerPasterMod.LOGGER.info("Summoning entity {} with nbt tag", this.currentEntity.getType().getName().getString());
-					ClientNetworkHandler.sendCommand(command);
-					return;
+					this.customCommand = command;
 				}
 			}
 		}
-		// original behavior
-		player.sendChatMessage(string);
+		return string;
 	}
 }
