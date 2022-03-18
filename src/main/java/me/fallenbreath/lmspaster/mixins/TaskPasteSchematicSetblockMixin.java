@@ -108,6 +108,12 @@ public abstract class TaskPasteSchematicSetblockMixin
 		{
 			if (this.currentEntity != null)
 			{
+				if (this.currentEntity.getVehicle() != null)
+				{
+					// acaciachan: don't paste passenger entities, they are already handled at the bottom-most entity
+					return;
+				}
+
 				CompoundTag tag = this.currentEntity.toTag(new CompoundTag());
 
 				// like net.minecraft.client.Keyboard.copyEntity
