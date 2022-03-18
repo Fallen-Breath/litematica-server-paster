@@ -52,6 +52,12 @@ public abstract class TaskPasteSchematicSetblockMixin
 	)
 	private void modifyCommand(TaskPasteSchematicPerChunkCommand instance, String command, ClientPlayerEntity player)
 	{
+		// maybe be modified to null cuz we do that in useCustomLongChatPacketToPasteEntityNbtDirectly
+		if (command == null)
+		{
+			return;
+		}
+
 		if (!Strings.isNullOrEmpty(this.customCommand))
 		{
 			if (this.customCommand.charAt(0) != '/')
@@ -132,6 +138,12 @@ public abstract class TaskPasteSchematicSetblockMixin
 		{
 			if (this.currentEntity != null)
 			{
+				if (this.currentEntity.getVehicle() != null)
+				{
+					// acaciachan: don't paste passenger entities, they are already handled at the bottom-most entity
+					return null;
+				}
+
 				NbtCompound tag = this.currentEntity.writeNbt(new NbtCompound());
 
 				// like net.minecraft.client.Keyboard.copyEntity

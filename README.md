@@ -10,7 +10,7 @@ You need to install it on both client & server to work.
 
 For the client-sode, it requires litematica mod only. For the server-side, it requires nothing
 
-For clientside, using latest litematica mod is always suggested
+You need to set `commandUseWorldEdit` to false and `pasteNbtRestoreBehavior` to `None` in litematica for this mod to work, if these 2 options exist in your litematica mod
 
 Tile entity data won't be pasted again if the block state matches the schematic though
 
