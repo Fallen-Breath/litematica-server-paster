@@ -186,6 +186,12 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 		{
 			if (this.currentEntity != null)
 			{
+				if (this.currentEntity.getVehicle() != null)
+				{
+					// acaciachan: don't paste passenger entities, they are already handled at the bottom-most entity
+					return null;
+				}
+
 				NbtCompound tag = this.currentEntity.writeNbt(new NbtCompound());
 
 				// like net.minecraft.client.Keyboard.copyEntity
