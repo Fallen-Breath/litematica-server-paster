@@ -162,6 +162,7 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 	}
 
 	private Entity currentEntity;
+	private boolean cancelThisEntityPaste;
 
 	@Inject(method = "summonEntity", at = @At("HEAD"), remap = false)
 	private void recordCurrentEntity(Entity entity, CallbackInfo ci)
@@ -182,6 +183,7 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 	)
 	private String useCustomLongChatPacketToPasteEntityNbtDirectly(String baseCommand)
 	{
+		this.cancelThisEntityPaste = false;
 		if (ClientNetworkHandler.doesServerAcceptsLongChat())
 		{
 			if (this.currentEntity != null)
@@ -189,7 +191,8 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 				if (this.currentEntity.getVehicle() != null)
 				{
 					// acaciachan: don't paste passenger entities, they are already handled at the bottom-most entity
-					return null;
+					this.cancelThisEntityPaste = true;
+					return baseCommand;
 				}
 
 				NbtCompound tag = this.currentEntity.writeNbt(new NbtCompound());
@@ -209,5 +212,23 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 			}
 		}
 		return baseCommand;
+	}
+
+	@Inject(
+			method = "summonEntity",
+			at = @At(
+					value = "INVOKE",
+					target = "Ljava/util/Queue;offer(Ljava/lang/Object;)Z",
+					remap = false
+			),
+			remap = false,
+			cancellable = true
+	)
+	private void cancelNullCommand(Entity command, CallbackInfo ci)
+	{
+		if (this.cancelThisEntityPaste)
+		{
+			ci.cancel();
+		}
 	}
 }
