@@ -1,7 +1,6 @@
 package me.fallenbreath.lmspaster.network;
 
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
-import me.fallenbreath.lmspaster.mixins.network.ServerPlayNetworkHandlerAccessor;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 
@@ -34,7 +33,7 @@ public class ServerNetworkHandler
 				else
 				{
 					Objects.requireNonNull(player.getServer()).execute(
-							() -> ((ServerPlayNetworkHandlerAccessor)player.networkHandler).invokeExecuteCommand(message)
+							() -> player.getServer().getCommandManager().execute(player.getCommandSource(), message)
 					);
 				}
 				break;
