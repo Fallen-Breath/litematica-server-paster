@@ -26,14 +26,14 @@ public class ServerNetworkHandler
 			case Network.C2S.CHAT:
 				LitematicaServerPasterMod.LOGGER.debug("Received chat from player {}", playerName);
 				String message = data.readString(Short.MAX_VALUE);
-				if (message.isEmpty() || message.charAt(0) != '/')
+				if (message.isEmpty())
 				{
 					LitematicaServerPasterMod.LOGGER.warn("Player {} sent a non-command chat message with length {}", playerName, message.length());
 				}
 				else
 				{
 					Objects.requireNonNull(player.getServer()).execute(
-							() -> player.getServer().getCommandManager().execute(player.getCommandSource(), message)
+							() -> player.getServer().getCommandManager().executeWithPrefix(player.getCommandSource(), message)
 					);
 				}
 				break;
