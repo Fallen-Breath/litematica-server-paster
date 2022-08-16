@@ -54,7 +54,7 @@ public class ClientNetworkHandler
 
 	private static boolean isStringVeryLong(String string)
 	{
-		return string.getBytes(StandardCharsets.UTF_8).length > Short.MAX_VALUE;
+		return string.getBytes(StandardCharsets.UTF_8).length > Short.MAX_VALUE - 100;  // -100 for safety
 	}
 
 	public static boolean canSendCommand(String command)
