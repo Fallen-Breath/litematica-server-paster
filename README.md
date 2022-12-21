@@ -1,5 +1,7 @@
 # Litematica Server Paster
 
+[![MC Versions](https://cf.way2muchnoise.eu/versions/For%20MC_litematica-server-paster_all.svg)](https://www.curseforge.com/minecraft/mc-mods/litematica-server-paster)
+[![CurseForge](https://cf.way2muchnoise.eu/full_litematica-server-paster_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/litematica-server-paster)
 [![Modrinth](https://img.shields.io/modrinth/dt/HCbarMw6?label=Modrinth%20Downloads)](https://modrinth.com/mod/litematica-server-paster)
 
 Let [Litematica](https://github.com/maruohon/litematica) be able to paste tile entity data of block / entity data in a server

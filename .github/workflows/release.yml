@@ -89,8 +89,8 @@ jobs:
           modrinth-id: HCbarMw6
           modrinth-token: ${{ secrets.MODRINTH_API_TOKEN }}
 
-#          curseforge-id: _INSERT_CURSEFORGE_MOD_ID_HERE_
-#          curseforge-token: ${{ secrets.CF_API_TOKEN }}
+          curseforge-id: 760725
+          curseforge-token: ${{ secrets.CF_API_TOKEN }}
 
           github-tag: ${{ steps.release_info.outputs.tag_name }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -105,6 +105,7 @@ jobs:
 
           loaders: fabric
           game-versions: ${{ matrix.game_versions }}
+          dependencies: 'litematica | depends'
           version-resolver: exact
 
           retry-attempts: 3
