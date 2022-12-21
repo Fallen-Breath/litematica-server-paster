@@ -42,7 +42,13 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 	private static final String CUSTOM_COMMAND_PREFIX = String.format("##%s##", LitematicaServerPasterMod.MOD_ID);
 
 	@Override
-	protected void sendCommandToServer(String command, ClientPlayerEntity player)
+	protected void
+			//#if MC >= 11902
+			//$$ sendCommand
+			//#else
+			sendCommandToServer
+			//#endif
+			(String command, ClientPlayerEntity player)
 	{
 		if (command.startsWith(CUSTOM_COMMAND_PREFIX))
 		{
@@ -56,7 +62,13 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 		else
 		{
 			// origin behavior
-			super.sendCommandToServer(command, player);
+
+			//#if MC >= 11902
+			//$$ super.sendCommand
+			//#else
+			super.sendCommandToServer
+			//#endif
+							(command, player);
 		}
 	}
 
