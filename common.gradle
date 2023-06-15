@@ -117,7 +117,7 @@ processResources {
 // https://github.com/Fallen-Breath/yamlang
 yamlang {
 	targetSourceSets = [sourceSets.main]
-	inputDir = 'assets/template_mod/lang'
+	inputDir = 'assets/lmspaster/lang'
 }
 
 // ensure that the encoding is set to UTF-8, no matter what the system default is
