@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "litematica-server-paster",
+  "id": "${id}",
   "version": "${version}",
 
-  "name": "Litematica Server Paster",
+  "name": "${name}",
   "description": "Let Litematica be able to paste tile entity data of block / entity data in a server",
   "authors": [
     "Fallen_Breath"
