@@ -50,10 +50,11 @@ dependencies {
 	// dependencies
 	if (mcVersion < 12000) {
 		modImplementation "fi.dy.masa.malilib:${project.malilib_version}"
+		modImplementation "curse.maven:litematica-308892:${project.litematica_file_id}"
 	} else {
 		modImplementation project.malilib_version
+		modImplementation project.litematica_file_id
 	}
-	modImplementation "curse.maven:litematica-308892:${project.litematica_file_id}"
 
 	// runtime mods
 	if (mcVersion < 11904) {
