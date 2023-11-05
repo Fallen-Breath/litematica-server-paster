@@ -69,7 +69,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 	)
 	private void useCustomLongChatPacketToPasteBlockNbtDirectly(ClientPlayerEntity player, String string, /* function args -> */ int x, int y, int z, BlockState state, ClientPlayerEntity player_)
 	{
-		if (ClientNetworkHandler.doesServerAcceptsLongChat())
+		if (ClientNetworkHandler.isServerPasterAvailable())
 		{
 			BlockEntity blockEntity = this.currentSchematicChunk.getBlockEntity(new BlockPos(x, y, z));
 			if (blockEntity != null)
@@ -124,7 +124,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 	)
 	private void useCustomLongChatPacketToPasteEntityNbtDirectly(ClientPlayerEntity player, String string)
 	{
-		if (ClientNetworkHandler.doesServerAcceptsLongChat())
+		if (ClientNetworkHandler.isServerPasterAvailable())
 		{
 			if (this.currentEntity != null)
 			{

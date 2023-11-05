@@ -123,7 +123,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 		{
 			return;
 		}
-		if (ClientNetworkHandler.doesServerAcceptsLongChat())
+		if (ClientNetworkHandler.isServerPasterAvailable())
 		{
 			BlockEntity blockEntity = this.currentSchematicChunk.getBlockEntity(new BlockPos(x, y, z));
 			if (blockEntity != null)
@@ -196,7 +196,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 	//#endif
 	private String useCustomLongChatPacketToPasteEntityNbtDirectly(String baseCommand)
 	{
-		if (ClientNetworkHandler.doesServerAcceptsLongChat())
+		if (ClientNetworkHandler.isServerPasterAvailable())
 		{
 			if (this.currentEntity != null)
 			{

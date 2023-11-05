@@ -61,6 +61,20 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 
 	private static final String CUSTOM_COMMAND_PREFIX = String.format("##%s##", LitematicaServerPasterMod.MOD_ID);
 
+	@ModifyVariable(
+			method = "generateFillVolumes",
+			at = @At(
+					value = "INVOKE",
+					target = "Lit/unimi/dsi/fastutil/longs/LongArrayList;clear()V"
+			),
+			ordinal = 0,
+			remap = false
+	)
+	private boolean forcedSetIgnoreBeFromFill(boolean ignoreBeFromFill)
+	{
+		return ignoreBeFromFill || ClientNetworkHandler.isServerPasterAvailable();
+	}
+
 	@Override
 	protected void
 			//#if MC >= 11902
@@ -124,7 +138,7 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 		{
 			return;
 		}
-		if (ClientNetworkHandler.doesServerAcceptsLongChat())
+		if (ClientNetworkHandler.isServerPasterAvailable())
 		{
 			BlockEntity blockEntity = this.currentSchematicChunk.getBlockEntity(new BlockPos(x, y, z));
 			if (blockEntity != null)
@@ -216,7 +230,7 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 	private String useCustomLongChatPacketToPasteEntityNbtDirectly(String baseCommand)
 	{
 		this.cancelThisEntityPaste = false;
-		if (ClientNetworkHandler.doesServerAcceptsLongChat())
+		if (ClientNetworkHandler.isServerPasterAvailable())
 		{
 			if (this.currentEntity != null)
 			{

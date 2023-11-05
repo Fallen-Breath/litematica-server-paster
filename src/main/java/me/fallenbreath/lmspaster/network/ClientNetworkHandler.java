@@ -61,7 +61,7 @@ public class ClientNetworkHandler
 		}));
 	}
 
-	public static boolean doesServerAcceptsLongChat()
+	public static boolean isServerPasterAvailable()
 	{
 		return supportPackets.length > 0;
 	}
