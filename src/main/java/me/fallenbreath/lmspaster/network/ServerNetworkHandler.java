@@ -21,10 +21,10 @@
 package me.fallenbreath.lmspaster.network;
 
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
-import me.fallenbreath.lmspaster.mixins.network.ServerPlayNetworkHandlerAccessor;
+import me.fallenbreath.lmspaster.mixins.ServerPlayNetworkHandlerAccessor;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.PacketByteBuf;
 
 import java.util.Map;
 import java.util.Objects;
@@ -40,28 +40,27 @@ public class ServerNetworkHandler
 		return Optional.ofNullable(VERY_LONG_CHATS.get(player.networkHandler));
 	}
 
-	public static void handleClientPacket(PacketByteBuf data, ServerPlayerEntity player)
+	public static void handleClientPacket(LmsPasterPayload payload, ServerPlayerEntity player)
 	{
 		String playerName = player.getName().getString();
-		int id = data.readVarInt();
+		int id = payload.getPacketId();
+		CompoundTag nbt = payload.getNbt();
 		switch (id)
 		{
 			case Network.C2S.HI:
-				String clientModVersion = data.readString(Short.MAX_VALUE);
+				String clientModVersion = nbt.getString("mod_version");
 				LitematicaServerPasterMod.LOGGER.info("Player {} connected with {} @ {}", playerName, LitematicaServerPasterMod.MOD_NAME, clientModVersion);
-				player.networkHandler.sendPacket(Network.S2C.packet(buf -> buf.
-						writeVarInt(Network.S2C.HI).
-						writeString(LitematicaServerPasterMod.VERSION)
-				));
-				player.networkHandler.sendPacket(Network.S2C.packet(buf -> buf.
-						writeVarInt(Network.S2C.ACCEPT_PACKETS).
-						writeIntArray(Network.C2S.ALL_PACKET_IDS))
-				);
+				player.networkHandler.sendPacket(Network.S2C.packet(Network.S2C.HI, nbt2 -> {
+					nbt2.putString("mod_version", LitematicaServerPasterMod.VERSION);
+				}));
+				player.networkHandler.sendPacket(Network.S2C.packet(Network.S2C.ACCEPT_PACKETS, nbt2 -> {
+					nbt2.putIntArray("ids", Network.C2S.ALL_PACKET_IDS);
+				}));
 				break;
 
 			case Network.C2S.CHAT:
 				LitematicaServerPasterMod.LOGGER.debug("Received chat from player {}", playerName);
-				String message = data.readString(Short.MAX_VALUE);
+				String message = nbt.getString("chat");
 				triggerCommand(player, playerName, message);
 				break;
 
@@ -71,9 +70,9 @@ public class ServerNetworkHandler
 				break;
 
 			case Network.C2S.VERY_LONG_CHAT_CONTENT:
-				String content = data.readString(Short.MAX_VALUE);
-				LitematicaServerPasterMod.LOGGER.debug("Received VERY_LONG_CHAT_CONTENT from player {} with length {}", playerName, content.length());
-				getVeryLongChatBuilder(player).ifPresent(builder -> builder.append(content));
+				String segment = nbt.getString("segment");
+				LitematicaServerPasterMod.LOGGER.debug("Received VERY_LONG_CHAT_CONTENT from player {} with length {}", playerName, segment.length());
+				getVeryLongChatBuilder(player).ifPresent(builder -> builder.append(segment));
 				break;
 
 			case Network.C2S.VERY_LONG_CHAT_END:

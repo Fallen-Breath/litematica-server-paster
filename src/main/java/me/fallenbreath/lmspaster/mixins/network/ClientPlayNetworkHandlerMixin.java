@@ -21,6 +21,7 @@
 package me.fallenbreath.lmspaster.mixins.network;
 
 import me.fallenbreath.lmspaster.network.ClientNetworkHandler;
+import me.fallenbreath.lmspaster.network.LmsPasterPayload;
 import me.fallenbreath.lmspaster.network.Network;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -33,27 +34,64 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+//#if MC >= 12002
+//$$ import net.minecraft.client.network.ClientCommonNetworkHandler;
+//$$ import net.minecraft.client.network.ClientConnectionState;
+//$$ import net.minecraft.network.ClientConnection;
+//$$ import net.minecraft.network.packet.CustomPayload;
+//#endif
+
 @Environment(EnvType.CLIENT)
 @Mixin(ClientPlayNetworkHandler.class)
 public abstract class ClientPlayNetworkHandlerMixin
+		//#if MC >= 12002
+		//$$ extends ClientCommonNetworkHandler
+		//#endif
 {
+	//#if MC >= 12002
+	//$$ protected ClientPlayNetworkHandlerMixin(MinecraftClient client, ClientConnection connection, ClientConnectionState connectionState)
+	//$$ {
+	//$$ 	super(client, connection, connectionState);
+	//$$ }
+	//#endif
+
 	@Inject(
 			method = "onCustomPayload",
+			//#if MC >= 12002
+			//$$ at = @At("HEAD"),
+			//#else
 			at = @At(
 					value = "INVOKE",
 					target = "Lnet/minecraft/network/packet/s2c/play/CustomPayloadS2CPacket;getChannel()Lnet/minecraft/util/Identifier;",
 					ordinal = 0
 			),
+			//#endif
 			cancellable = true
 	)
-	private void onCustomPayload$lmspaster(CustomPayloadS2CPacket packet, CallbackInfo ci)
+	private void onCustomPayload$lmspaster(
+			//#if MC >= 12002
+			//$$ CustomPayload mcPayload,
+			//#else
+			CustomPayloadS2CPacket packet,
+			//#endif
+			CallbackInfo ci
+	)
 	{
+		//#if MC >= 12002
+		//$$ if (mcPayload instanceof LmsPasterPayload payload)
+		//$$ {
+		//$$ 	this.client.execute(() -> ClientNetworkHandler.handleServerPacket(payload, MinecraftClient.getInstance().player));
+		//$$ 	ci.cancel();
+		//$$ }
+		//#else
 		Identifier channel = ((CustomPayloadS2CPacketAccessor)packet).getChannel();
 		if (Network.CHANNEL.equals(channel))
 		{
-			ClientNetworkHandler.handleServerPacket(((CustomPayloadS2CPacketAccessor)packet).getData(), MinecraftClient.getInstance().player);
+			LmsPasterPayload payload = new LmsPasterPayload(((CustomPayloadS2CPacketAccessor)packet).getData());
+			ClientNetworkHandler.handleServerPacket(payload, MinecraftClient.getInstance().player);
 			ci.cancel();
 		}
+		//#endif
 	}
 
 	@Inject(method = "onGameJoin", at = @At("RETURN"))

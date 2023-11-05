@@ -18,7 +18,7 @@
  * along with Litematica Server Paster.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.fallenbreath.lmspaster.mixins.network;
+package me.fallenbreath.lmspaster.mixins;
 
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import org.spongepowered.asm.mixin.Mixin;

@@ -4,9 +4,11 @@
   "package": "me.fallenbreath.lmspaster.mixins",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "ServerPlayNetworkHandlerAccessor",
     "network.CustomPayloadC2SPacketAccessor",
+    "network.CustomPayloadC2SPacketMixin",
     "network.CustomPayloadS2CPacketAccessor",
-    "network.ServerPlayNetworkHandlerAccessor",
+    "network.CustomPayloadS2CPacketMixin",
     "network.ServerPlayNetworkHandlerMixin"
   ],
   "client": [
