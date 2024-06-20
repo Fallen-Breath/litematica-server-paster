@@ -23,10 +23,14 @@ package me.fallenbreath.lmspaster.util;
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
 import net.minecraft.util.Identifier;
 
-public class RegistryUtil
+public class IdentifierUtil
 {
 	public static Identifier id(String name)
 	{
+		//#if MC >= 12100
+		//$$ return Identifier.of(LitematicaServerPasterMod.MOD_ID, name);
+		//#else
 		return new Identifier(LitematicaServerPasterMod.MOD_ID, name);
+		//#endif
 	}
 }

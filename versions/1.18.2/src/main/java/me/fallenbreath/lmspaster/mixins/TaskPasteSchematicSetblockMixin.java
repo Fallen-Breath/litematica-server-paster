@@ -145,7 +145,11 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 			{
 				String cmdName = this.setBlockCommand;
 				String stateString = BlockArgumentParser.stringifyBlockState(state);
-				NbtCompound tag = blockEntity.createNbt();
+				NbtCompound tag = blockEntity.createNbt(
+						//#if MC >= 12006
+						//$$ this.world.getRegistryManager()
+						//#endif
+				);
 				tag.remove("id");
 				tag.remove("x");
 				tag.remove("y");

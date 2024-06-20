@@ -24,12 +24,25 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.PacketByteBuf;
 
+//#if MC >= 12005
+//$$ import net.minecraft.network.codec.PacketCodec;
+//#endif
+
+//#if MC >= 12002
+//$$ import net.minecraft.network.packet.CustomPayload;
+//#endif
+
 public class LmsPasterPayload
 		//#if MC >= 12002
-		//$$ implements net.minecraft.network.packet.CustomPayload
+		//$$ implements CustomPayload
 		//#endif
 {
 	public static final Identifier ID = Network.CHANNEL;
+
+	//#if MC >= 12005
+	//$$ public static final CustomPayload.Id<LmsPasterPayload> KEY = new CustomPayload.Id<>(ID);
+	//$$ public static final PacketCodec<PacketByteBuf, LmsPasterPayload> CODEC = CustomPayload.codecOf(LmsPasterPayload::write, LmsPasterPayload::new);
+	//#endif
 
 	private final int id;
 	private final CompoundTag nbt;
@@ -46,17 +59,29 @@ public class LmsPasterPayload
 	}
 
 	//#if MC >= 12002
+	//$$ //#if MC < 12005
 	//$$ @Override
+	//$$ //#endif
 	//$$ public void write(PacketByteBuf buf)
 	//$$ {
 	//$$ 	buf.writeVarInt(this.id);
 	//$$ 	buf.writeNbt(this.nbt);
 	//$$ }
 	//$$
+	//$$ //#if MC < 12005
 	//$$ @Override
+	//$$ //#endif
 	//$$ public Identifier id()
 	//$$ {
 	//$$ 	return ID;
+	//$$ }
+	//#endif
+
+	//#if MC >= 12005
+	//$$ @Override
+	//$$ public Id<? extends LmsPasterPayload> getId()
+	//$$ {
+	//$$ 	return KEY;
 	//$$ }
 	//#endif
 

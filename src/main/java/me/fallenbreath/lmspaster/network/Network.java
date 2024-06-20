@@ -23,7 +23,7 @@ package me.fallenbreath.lmspaster.network;
 import com.google.common.collect.Sets;
 import io.netty.buffer.Unpooled;
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
-import me.fallenbreath.lmspaster.util.RegistryUtil;
+import me.fallenbreath.lmspaster.util.IdentifierUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.packet.c2s.play.CustomPayloadC2SPacket;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
@@ -37,7 +37,7 @@ import java.util.function.Consumer;
 
 public class Network
 {
-	public static final Identifier CHANNEL = RegistryUtil.id("network_v2");
+	public static final Identifier CHANNEL = IdentifierUtil.id("network_v2");
 
 	public static class C2S
 	{
