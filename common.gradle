@@ -15,10 +15,13 @@ repositories {
 		url 'https://masa.dy.fi/maven'
 	}
 	maven {
-		url 'https://cursemaven.com'
+		url 'https://maven.fallenbreath.me/releases'
 	}
 	maven {
 		url 'https://jitpack.io'
+	}
+	maven {
+		url 'https://www.cursemaven.com'
 	}
 }
 
@@ -46,25 +49,29 @@ dependencies {
 	}
 
 	// dependencies
-	modImplementation "fi.dy.masa.malilib:${project.malilib_version}"
-	modImplementation "curse.maven:litematica-308892:${project.litematica_file_id}"
+	modImplementation "${mcVersion >= 12100 ? 'com.github.sakura-ryoko:malilib' : 'fi.dy.masa.malilib'}:${project.malilib_version}"
+	modImplementation "${mcVersion >= 12006 ? 'com.github.sakura-ryoko:litematica' : 'curse.maven:litematica-308892'}:${project.litematica_file_id}"
 
 	// runtime mods
 	if (mcVersion < 11904) {
 		modRuntimeOnly(mcVersion < 11900 ? "com.github.astei:lazydfu:0.1.2" : "com.github.Fallen-Breath:lazydfu:a7cfc44c0c")
 	}
+	modRuntimeOnly 'me.fallenbreath:mixin-auditor:0.1.0'
 }
 
 String MIXIN_CONFIG_PATH = 'lmspaster.mixins.json'
 String LANG_DIR = 'assets/lmspaster/lang'
 JavaVersion JAVA_COMPATIBILITY
-if (mcVersion >= 11800) {
+if (mcVersion >= 12005) {
+	JAVA_COMPATIBILITY = JavaVersion.VERSION_21
+} else if (mcVersion >= 11800) {
 	JAVA_COMPATIBILITY = JavaVersion.VERSION_17
 } else if (mcVersion >= 11700) {
 	JAVA_COMPATIBILITY = JavaVersion.VERSION_16
 } else {
 	JAVA_COMPATIBILITY = JavaVersion.VERSION_1_8
 }
+JavaVersion MIXIN_COMPATIBILITY_LEVEL = JAVA_COMPATIBILITY
 
 loom {
 	runConfigs.configureEach {
@@ -73,51 +80,75 @@ loom {
 		runDir '../../run'
 		vmArgs '-Dmixin.debug.export=true'
 	}
+	runs {
+		serverMixinAudit {
+			server()
+			vmArgs '-DmixinAuditor.audit=true'
+			ideConfigGenerated false
+		}
+		clientMixinAudit {
+			client()
+			vmArgs '-DmixinAuditor.audit=true'
+			ideConfigGenerated false
+		}
+	}
 }
 
 remapJar {
 	remapperIsolation = true
 }
 
-String versionSuffix = ''
+String modVersionSuffix = ''
+String artifactVersion = project.mod_version
 // detect github action environment variables
 // https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables
 if (System.getenv("BUILD_RELEASE") != "true") {
 	String buildNumber = System.getenv("BUILD_ID")
-	versionSuffix += buildNumber != null ? ('+build.' + buildNumber) : '-SNAPSHOT'
+	modVersionSuffix += buildNumber != null ? ('+build.' + buildNumber) : '-SNAPSHOT'
+	artifactVersion += '-SNAPSHOT'  // A non-release artifact is always a SNAPSHOT artifact
 }
-String fullModVersion = project.mod_version + versionSuffix
+String finalModVersion = project.mod_version + modVersionSuffix
+String fullProjectVersion, fullArtifactVersion
+
+// Example version values:
+//   project.mod_version   1.0.3                      (the base mod version)
+//   finalModVersion       1.0.3+build.88             (the actual mod version to use)
+//   fullProjectVersion    mc1.15.2-v1.0.3+build.88   (in build output jar name)
+//   fullArtifactVersion   mc1.15.2-v1.0.3-SNAPSHOT   (maven artifact version)
 
 group = project.maven_group
 if (System.getenv("JITPACK") == "true") {
 	// move mc version into archivesBaseName, so jitpack will be able to organize archives from multiple subprojects correctly
-    base.archivesName = project.archives_base_name + '-mc' + project.minecraft_version
-	version = 'v' + fullModVersion
+	base.archivesName = project.archives_base_name + '-mc' + project.minecraft_version
+	fullProjectVersion = 'v' + finalModVersion
+	fullArtifactVersion = 'v' + artifactVersion
 } else {
-    base.archivesName = project.archives_base_name
-	version = 'mc' + project.minecraft_version + '-v' + fullModVersion
+	base.archivesName = project.archives_base_name
+	fullProjectVersion = 'mc' + project.minecraft_version + '-v' + finalModVersion
+	fullArtifactVersion = 'mc' + project.minecraft_version + '-v' + artifactVersion
 }
+version = fullProjectVersion
 
 // See https://youtrack.jetbrains.com/issue/IDEA-296490
 // if IDEA complains about "Cannot resolve resource filtering of MatchingCopyAction" and you want to know why
 processResources {
 	inputs.property "id", project.mod_id
 	inputs.property "name", project.mod_name
-	inputs.property "version", fullModVersion
+	inputs.property "version", finalModVersion
 	inputs.property "minecraft_dependency", project.minecraft_dependency
 
 	filesMatching("fabric.mod.json") {
 		def valueMap = [
 				"id": project.mod_id,
 				"name": project.mod_name,
-				"version": fullModVersion,
+				"version": finalModVersion,
 				"minecraft_dependency": project.minecraft_dependency,
 		]
 		expand valueMap
 	}
 
 	filesMatching(MIXIN_CONFIG_PATH) {
-		filter { s -> s.replace('{{COMPATIBILITY_LEVEL}}', "JAVA_${JAVA_COMPATIBILITY.ordinal() + 1}") }
+		filter { s -> s.replace('{{COMPATIBILITY_LEVEL}}', "JAVA_${MIXIN_COMPATIBILITY_LEVEL.ordinal() + 1}") }
 	}
 }
 
@@ -133,6 +164,10 @@ yamlang {
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = "UTF-8"
 	options.compilerArgs << "-Xlint:deprecation" << "-Xlint:unchecked"
+	if (JAVA_COMPATIBILITY <= JavaVersion.VERSION_1_8) {
+		// suppressed "source/target value 8 is obsolete and will be removed in a future release"
+		options.compilerArgs << '-Xlint:-options'
+	}
 }
 
 java {
@@ -191,8 +226,8 @@ publishing {
 	publications {
 		mavenJava(MavenPublication) {
 			artifactId base.archivesName.get()
-
 			from components.java
+            version = fullArtifactVersion
 		}
 	}
 
