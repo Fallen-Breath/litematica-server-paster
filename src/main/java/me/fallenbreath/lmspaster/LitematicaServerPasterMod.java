@@ -20,6 +20,7 @@
 
 package me.fallenbreath.lmspaster;
 
+import me.fallenbreath.lmspaster.network.LmsNetwork;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import org.apache.logging.log4j.LogManager;
@@ -38,6 +39,6 @@ public class LitematicaServerPasterMod implements ModInitializer
 	{
 		VERSION = FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow(RuntimeException::new).getMetadata().getVersion().getFriendlyString();
 
-//		MixinEnvironment.getCurrentEnvironment().audit();
+		LmsNetwork.init();
 	}
 }

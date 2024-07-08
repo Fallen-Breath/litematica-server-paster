@@ -31,22 +31,22 @@ import java.util.Arrays;
 
 public class ClientNetworkHandler
 {
-	private static final int[] MINIMUM_SUPPORT_PACKETS = new int[]{Network.C2S.HI, Network.C2S.CHAT};
+	private static final int[] MINIMUM_SUPPORT_PACKETS = new int[]{LmsNetwork.C2S.HI, LmsNetwork.C2S.CHAT};
 	private static int[] supportPackets = new int[0];
 
-	public static void handleServerPacket(LmsPasterPayload payload, ClientPlayerEntity player)
+	public static void handleServerPacket(LmsPasterPacket packet, ClientPlayerEntity player)
 	{
-		int id = payload.getPacketId();
-		CompoundTag nbt = payload.getNbt();
+		int id = packet.getPacketId();
+		CompoundTag nbt = packet.getNbt();
 		switch (id)
 		{
-			case Network.S2C.HI:
+			case LmsNetwork.S2C.HI:
 				String serverModVersion = nbt.getString("mod_version");
 				LitematicaServerPasterMod.LOGGER.info("Server is installed with mod {} @ {}", LitematicaServerPasterMod.MOD_NAME, serverModVersion);
 				supportPackets = MINIMUM_SUPPORT_PACKETS.clone();
 				break;
 
-			case Network.S2C.ACCEPT_PACKETS:
+			case LmsNetwork.S2C.ACCEPT_PACKETS:
 				supportPackets = nbt.getIntArray("ids");
 				LitematicaServerPasterMod.LOGGER.debug("Packet IDs supported by the server: {}", supportPackets);
 				break;
@@ -56,7 +56,7 @@ public class ClientNetworkHandler
 	public static void sendHiToTheServer(ClientPlayNetworkHandler clientPlayNetworkHandler)
 	{
 		supportPackets = new int[0];
-		clientPlayNetworkHandler.sendPacket(Network.C2S.packet(Network.C2S.HI, nbt2 -> {
+		clientPlayNetworkHandler.sendPacket(LmsNetwork.C2S.packet(LmsNetwork.C2S.HI, nbt2 -> {
 			nbt2.putString("mod_version", LitematicaServerPasterMod.VERSION);
 		}));
 	}
@@ -68,7 +68,7 @@ public class ClientNetworkHandler
 
 	public static boolean doesServerAcceptsVeryLongChat()
 	{
-		return Arrays.stream(supportPackets).anyMatch(id -> id == Network.C2S.VERY_LONG_CHAT_START);
+		return Arrays.stream(supportPackets).anyMatch(id -> id == LmsNetwork.C2S.VERY_LONG_CHAT_START);
 	}
 
 	private static boolean isStringVeryLong(String string)
@@ -107,7 +107,7 @@ public class ClientNetworkHandler
 		ClientPlayNetworkHandler networkHandler = MinecraftClient.getInstance().getNetworkHandler();
 		if (networkHandler != null)
 		{
-			networkHandler.sendPacket(Network.C2S.packet(Network.C2S.CHAT, nbt2 -> {
+			networkHandler.sendPacket(LmsNetwork.C2S.packet(LmsNetwork.C2S.CHAT, nbt2 -> {
 				nbt2.putString("chat", command);
 			}));
 		}
@@ -120,18 +120,18 @@ public class ClientNetworkHandler
 		{
 			final int segmentLength = 8000;  // ~ Short.MAX_VALUE / 4, where utf8 allows 4 bytes per char at most
 
-			networkHandler.sendPacket(Network.C2S.packet(Network.C2S.VERY_LONG_CHAT_START, nbt2 -> {}));
+			networkHandler.sendPacket(LmsNetwork.C2S.packet(LmsNetwork.C2S.VERY_LONG_CHAT_START, nbt2 -> {}));
 
 			for (int i = 0; i < command.length(); i+= segmentLength)
 			{
 				int j = Math.min(command.length(), i + segmentLength);
 				String segment = command.substring(i, j);
-				networkHandler.sendPacket(Network.C2S.packet(Network.C2S.VERY_LONG_CHAT_CONTENT, nbt2 -> {
+				networkHandler.sendPacket(LmsNetwork.C2S.packet(LmsNetwork.C2S.VERY_LONG_CHAT_CONTENT, nbt2 -> {
 					nbt2.putString("segment", segment);
 				}));
 			}
 
-			networkHandler.sendPacket(Network.C2S.packet(Network.C2S.VERY_LONG_CHAT_END, nbt2 -> {}));
+			networkHandler.sendPacket(LmsNetwork.C2S.packet(LmsNetwork.C2S.VERY_LONG_CHAT_END, nbt2 -> {}));
 		}
 	}
 }

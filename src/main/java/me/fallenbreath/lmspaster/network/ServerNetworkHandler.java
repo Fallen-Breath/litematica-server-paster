@@ -40,42 +40,42 @@ public class ServerNetworkHandler
 		return Optional.ofNullable(VERY_LONG_CHATS.get(player.networkHandler));
 	}
 
-	public static void handleClientPacket(LmsPasterPayload payload, ServerPlayerEntity player)
+	public static void handleClientPacket(LmsPasterPacket packet, ServerPlayerEntity player)
 	{
 		String playerName = player.getName().getString();
-		int id = payload.getPacketId();
-		CompoundTag nbt = payload.getNbt();
+		int id = packet.getPacketId();
+		CompoundTag nbt = packet.getNbt();
 		switch (id)
 		{
-			case Network.C2S.HI:
+			case LmsNetwork.C2S.HI:
 				String clientModVersion = nbt.getString("mod_version");
 				LitematicaServerPasterMod.LOGGER.info("Player {} connected with {} @ {}", playerName, LitematicaServerPasterMod.MOD_NAME, clientModVersion);
-				player.networkHandler.sendPacket(Network.S2C.packet(Network.S2C.HI, nbt2 -> {
+				player.networkHandler.sendPacket(LmsNetwork.S2C.packet(LmsNetwork.S2C.HI, nbt2 -> {
 					nbt2.putString("mod_version", LitematicaServerPasterMod.VERSION);
 				}));
-				player.networkHandler.sendPacket(Network.S2C.packet(Network.S2C.ACCEPT_PACKETS, nbt2 -> {
-					nbt2.putIntArray("ids", Network.C2S.ALL_PACKET_IDS);
+				player.networkHandler.sendPacket(LmsNetwork.S2C.packet(LmsNetwork.S2C.ACCEPT_PACKETS, nbt2 -> {
+					nbt2.putIntArray("ids", LmsNetwork.C2S.ALL_PACKET_IDS);
 				}));
 				break;
 
-			case Network.C2S.CHAT:
+			case LmsNetwork.C2S.CHAT:
 				LitematicaServerPasterMod.LOGGER.debug("Received chat from player {}", playerName);
 				String message = nbt.getString("chat");
 				triggerCommand(player, playerName, message);
 				break;
 
-			case Network.C2S.VERY_LONG_CHAT_START:
+			case LmsNetwork.C2S.VERY_LONG_CHAT_START:
 				LitematicaServerPasterMod.LOGGER.debug("Received VERY_LONG_CHAT_START from player {}", playerName);
 				VERY_LONG_CHATS.put(player.networkHandler, new StringBuilder());
 				break;
 
-			case Network.C2S.VERY_LONG_CHAT_CONTENT:
+			case LmsNetwork.C2S.VERY_LONG_CHAT_CONTENT:
 				String segment = nbt.getString("segment");
 				LitematicaServerPasterMod.LOGGER.debug("Received VERY_LONG_CHAT_CONTENT from player {} with length {}", playerName, segment.length());
 				getVeryLongChatBuilder(player).ifPresent(builder -> builder.append(segment));
 				break;
 
-			case Network.C2S.VERY_LONG_CHAT_END:
+			case LmsNetwork.C2S.VERY_LONG_CHAT_END:
 				LitematicaServerPasterMod.LOGGER.debug("Received VERY_LONG_CHAT_END from player {}", playerName);
 				getVeryLongChatBuilder(player).ifPresent(builder ->triggerCommand(player, playerName, builder.toString()));
 				VERY_LONG_CHATS.remove(player.networkHandler);

@@ -21,21 +21,24 @@
 package me.fallenbreath.lmspaster.network;
 
 import com.google.common.collect.Sets;
-import io.netty.buffer.Unpooled;
+import me.fallenbreath.fanetlib.api.event.FanetlibClientEvents;
+import me.fallenbreath.fanetlib.api.packet.FanetlibPackets;
+import me.fallenbreath.fanetlib.api.packet.PacketCodec;
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
 import me.fallenbreath.lmspaster.util.IdentifierUtil;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.packet.c2s.play.CustomPayloadC2SPacket;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.PacketByteBuf;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Set;
 import java.util.function.Consumer;
 
-public class Network
+public class LmsNetwork
 {
 	public static final Identifier CHANNEL = IdentifierUtil.id("network_v2");
 
@@ -83,15 +86,7 @@ public class Network
 		{
 			CompoundTag nbt = new CompoundTag();
 			payloadBuilder.accept(nbt);
-
-			//#if MC >= 12002
-			//$$ return new CustomPayloadC2SPacket(new LmsPasterPayload(packetId, nbt));
-			//#else
-			PacketByteBuf packetByteBuf = new PacketByteBuf(Unpooled.buffer());
-			packetByteBuf.writeVarInt(packetId);
-			packetByteBuf.writeCompoundTag(nbt);
-			return new CustomPayloadC2SPacket(CHANNEL, packetByteBuf);
-			//#endif
+			return FanetlibPackets.createC2S(CHANNEL, new LmsPasterPacket(packetId, nbt));
 		}
 	}
 
@@ -104,15 +99,28 @@ public class Network
 		{
 			CompoundTag nbt = new CompoundTag();
 			payloadBuilder.accept(nbt);
-
-			//#if MC >= 12002
-			//$$ return new CustomPayloadS2CPacket(new LmsPasterPayload(packetId, nbt));
-			//#else
-			PacketByteBuf packetByteBuf = new PacketByteBuf(Unpooled.buffer());
-			packetByteBuf.writeVarInt(packetId);
-			packetByteBuf.writeCompoundTag(nbt);
-			return new CustomPayloadS2CPacket(CHANNEL, packetByteBuf);
-			//#endif
+			return FanetlibPackets.createS2C(CHANNEL, new LmsPasterPacket(packetId, nbt));
 		}
+	}
+
+	public static void init()
+	{
+		FanetlibPackets.registerDual(
+				CHANNEL,
+				PacketCodec.of(LmsPasterPacket::write, LmsPasterPacket::new),
+				(p, c) -> ServerNetworkHandler.handleClientPacket(p, c.getPlayer()),
+				(p, c) -> ClientNetworkHandler.handleServerPacket(p, c.getPlayer())
+		);
+
+		if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
+		{
+			initClient();
+		}
+	}
+
+	private static void initClient()
+	{
+		FanetlibClientEvents.registerGameJoinListener((client, networkHandler) -> ClientNetworkHandler.sendHiToTheServer(networkHandler));
+		FanetlibClientEvents.registerPlayerRespawnListener((client, networkHandler) -> ClientNetworkHandler.sendHiToTheServer(networkHandler));
 	}
 }

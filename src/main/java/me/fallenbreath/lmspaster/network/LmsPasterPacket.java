@@ -18,20 +18,41 @@
  * along with Litematica Server Paster.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.fallenbreath.lmspaster.mixins.network;
+package me.fallenbreath.lmspaster.network;
 
-import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
-import net.minecraft.util.Identifier;
+import me.fallenbreath.fanetlib.api.nbt.FanetlibNbtUtils;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.PacketByteBuf;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(CustomPayloadS2CPacket.class)
-public interface CustomPayloadS2CPacketAccessor
+public class LmsPasterPacket
 {
-	@Accessor
-	Identifier getChannel();
+	private final int id;
+	private final CompoundTag nbt;
 
-	@Accessor
-	PacketByteBuf getData();
+	public LmsPasterPacket(int id, CompoundTag nbt)
+	{
+		this.id = id;
+		this.nbt = nbt;
+	}
+
+	public LmsPasterPacket(PacketByteBuf buf)
+	{
+		this(buf.readVarInt(), FanetlibNbtUtils.readNbtAuto(buf));
+	}
+
+	public void write(PacketByteBuf buf)
+	{
+		buf.writeVarInt(this.id);
+		buf.writeCompoundTag(this.nbt);
+	}
+
+	public int getPacketId()
+	{
+		return this.id;
+	}
+
+	public CompoundTag getNbt()
+	{
+		return this.nbt;
+	}
 }
