@@ -24,14 +24,13 @@ import com.google.common.collect.Sets;
 import me.fallenbreath.fanetlib.api.event.FanetlibClientEvents;
 import me.fallenbreath.fanetlib.api.packet.FanetlibPackets;
 import me.fallenbreath.fanetlib.api.packet.PacketCodec;
+import me.fallenbreath.fanetlib.api.packet.PacketId;
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
-import me.fallenbreath.lmspaster.util.IdentifierUtil;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.packet.c2s.play.CustomPayloadC2SPacket;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
-import net.minecraft.util.Identifier;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -40,7 +39,7 @@ import java.util.function.Consumer;
 
 public class LmsNetwork
 {
-	public static final Identifier CHANNEL = IdentifierUtil.id("network_v2");
+	private static final PacketId<LmsPasterPacket> PACKET_ID = PacketId.of(LitematicaServerPasterMod.MOD_ID, "network_v2");
 
 	public static class C2S
 	{
@@ -86,7 +85,7 @@ public class LmsNetwork
 		{
 			CompoundTag nbt = new CompoundTag();
 			payloadBuilder.accept(nbt);
-			return FanetlibPackets.createC2S(CHANNEL, new LmsPasterPacket(packetId, nbt));
+			return FanetlibPackets.createC2S(PACKET_ID, new LmsPasterPacket(packetId, nbt));
 		}
 	}
 
@@ -99,14 +98,14 @@ public class LmsNetwork
 		{
 			CompoundTag nbt = new CompoundTag();
 			payloadBuilder.accept(nbt);
-			return FanetlibPackets.createS2C(CHANNEL, new LmsPasterPacket(packetId, nbt));
+			return FanetlibPackets.createS2C(PACKET_ID, new LmsPasterPacket(packetId, nbt));
 		}
 	}
 
 	public static void init()
 	{
 		FanetlibPackets.registerDual(
-				CHANNEL,
+				PACKET_ID,
 				PacketCodec.of(LmsPasterPacket::write, LmsPasterPacket::new),
 				(p, c) -> ServerNetworkHandler.handleClientPacket(p, c.getPlayer()),
 				(p, c) -> ClientNetworkHandler.handleServerPacket(p, c.getPlayer())
