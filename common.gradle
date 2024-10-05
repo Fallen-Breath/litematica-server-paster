@@ -49,8 +49,8 @@ dependencies {
 	}
 
 	// dependencies
-	modImplementation "${mcVersion >= 12100 ? 'com.github.sakura-ryoko:malilib' : 'fi.dy.masa.malilib'}:${project.malilib_version}"
-	modImplementation "${mcVersion >= 12006 ? 'com.github.sakura-ryoko:litematica' : 'curse.maven:litematica-308892'}:${project.litematica_file_id}"
+	modImplementation "fi.dy.masa.malilib:${project.malilib_version}"
+	modImplementation "curse.maven:litematica-308892:${project.litematica_file_id}"
 
 	def fanetlibMcVer = mcVersion >= 12100 ? '1.21' : mcVersion >= 12006 ? '1.20.6' : mcVersion >= 12002 ? '1.20.2': '1.15.2'
 	include(modImplementation("me.fallenbreath:fanetlib:${project.fanetlib_version}-mc${fanetlibMcVer}"))
@@ -77,21 +77,23 @@ if (mcVersion >= 12005) {
 JavaVersion MIXIN_COMPATIBILITY_LEVEL = JAVA_COMPATIBILITY
 
 loom {
+	def commonVmArgs = ['-Dmixin.debug.export=true', '-Dmixin.debug.countInjections=true']
 	runConfigs.configureEach {
 		// to make sure it generates all "Minecraft Client (:subproject_name)" applications
 		ideConfigGenerated = true
 		runDir '../../run'
-		vmArgs '-Dmixin.debug.export=true'
+		vmArgs commonVmArgs
 	}
 	runs {
+		def auditVmArgs = [*commonVmArgs, '-DmixinAuditor.audit=true']
 		serverMixinAudit {
 			server()
-			vmArgs '-DmixinAuditor.audit=true'
+            vmArgs auditVmArgs
 			ideConfigGenerated false
 		}
 		clientMixinAudit {
 			client()
-			vmArgs '-DmixinAuditor.audit=true'
+            vmArgs auditVmArgs
 			ideConfigGenerated false
 		}
 	}
@@ -103,32 +105,35 @@ remapJar {
 
 String modVersionSuffix = ''
 String artifactVersion = project.mod_version
+String artifactVersionSuffix = ''
 // detect github action environment variables
 // https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables
 if (System.getenv("BUILD_RELEASE") != "true") {
 	String buildNumber = System.getenv("BUILD_ID")
 	modVersionSuffix += buildNumber != null ? ('+build.' + buildNumber) : '-SNAPSHOT'
-	artifactVersion += '-SNAPSHOT'  // A non-release artifact is always a SNAPSHOT artifact
+	artifactVersionSuffix = '-SNAPSHOT'  // A non-release artifact is always a SNAPSHOT artifact
 }
-String finalModVersion = project.mod_version + modVersionSuffix
+String fullModVersion = project.mod_version + modVersionSuffix
 String fullProjectVersion, fullArtifactVersion
 
 // Example version values:
-//   project.mod_version   1.0.3                      (the base mod version)
-//   finalModVersion       1.0.3+build.88             (the actual mod version to use)
-//   fullProjectVersion    mc1.15.2-v1.0.3+build.88   (in build output jar name)
-//   fullArtifactVersion   mc1.15.2-v1.0.3-SNAPSHOT   (maven artifact version)
+//   project.mod_version     1.0.3                      (the base mod version)
+//   modVersionSuffix        +build.88                  (use github action build number if possible)
+//   artifactVersionSuffix   -SNAPSHOT
+//   fullModVersion          1.0.3+build.88             (the actual mod version to use in the mod)
+//   fullProjectVersion      v1.0.3-mc1.15.2+build.88   (in build output jar name)
+//   fullArtifactVersion     1.0.3-mc1.15.2-SNAPSHOT    (maven artifact version)
 
 group = project.maven_group
 if (System.getenv("JITPACK") == "true") {
 	// move mc version into archivesBaseName, so jitpack will be able to organize archives from multiple subprojects correctly
 	base.archivesName = project.archives_base_name + '-mc' + project.minecraft_version
-	fullProjectVersion = 'v' + finalModVersion
-	fullArtifactVersion = 'v' + artifactVersion
+	fullProjectVersion = 'v' + project.mod_version + modVersionSuffix
+	fullArtifactVersion = artifactVersion + artifactVersionSuffix
 } else {
 	base.archivesName = project.archives_base_name
-	fullProjectVersion = 'mc' + project.minecraft_version + '-v' + finalModVersion
-	fullArtifactVersion = 'mc' + project.minecraft_version + '-v' + artifactVersion
+	fullProjectVersion = 'v' + project.mod_version + '-mc' + project.minecraft_version + modVersionSuffix
+	fullArtifactVersion = artifactVersion + '-mc' + project.minecraft_version + artifactVersionSuffix
 }
 version = fullProjectVersion
 
@@ -137,14 +142,14 @@ version = fullProjectVersion
 processResources {
 	inputs.property "id", project.mod_id
 	inputs.property "name", project.mod_name
-	inputs.property "version", finalModVersion
+	inputs.property "version", fullModVersion
 	inputs.property "minecraft_dependency", project.minecraft_dependency
 
 	filesMatching("fabric.mod.json") {
 		def valueMap = [
 				"id": project.mod_id,
 				"name": project.mod_name,
-				"version": finalModVersion,
+				"version": fullModVersion,
 				"minecraft_dependency": project.minecraft_dependency,
 		]
 		expand valueMap
