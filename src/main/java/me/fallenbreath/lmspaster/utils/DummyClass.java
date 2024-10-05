@@ -18,7 +18,7 @@
  * along with Litematica Server Paster.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.fallenbreath.lmspaster.util;
+package me.fallenbreath.lmspaster.utils;
 
 public class DummyClass
 {
