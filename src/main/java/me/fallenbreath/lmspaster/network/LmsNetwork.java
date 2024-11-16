@@ -102,7 +102,7 @@ public class LmsNetwork
 		}
 	}
 
-	public static void init()
+	public static void initPackets()
 	{
 		FanetlibPackets.registerDual(
 				PACKET_ID,
@@ -110,14 +110,17 @@ public class LmsNetwork
 				(p, c) -> ServerNetworkHandler.handleClientPacket(p, c.getPlayer()),
 				(p, c) -> ClientNetworkHandler.handleServerPacket(p, c.getPlayer())
 		);
+	}
 
+	public static void initEvents()
+	{
 		if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
 		{
-			initClient();
+			initClientEvents();
 		}
 	}
 
-	private static void initClient()
+	private static void initClientEvents()
 	{
 		FanetlibClientEvents.registerGameJoinListener((client, networkHandler) -> ClientNetworkHandler.sendHiToTheServer(networkHandler));
 		FanetlibClientEvents.registerPlayerRespawnListener((client, networkHandler) -> ClientNetworkHandler.sendHiToTheServer(networkHandler));

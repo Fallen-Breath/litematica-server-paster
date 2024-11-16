@@ -2,7 +2,7 @@
  * This file is part of the Litematica Server Paster project, licensed under the
  * GNU Lesser General Public License v3.0
  *
- * Copyright (C) 2023  Fallen_Breath and contributors
+ * Copyright (C) 2024  Fallen_Breath and contributors
  *
  * Litematica Server Paster is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -18,27 +18,21 @@
  * along with Litematica Server Paster.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.fallenbreath.lmspaster;
+package me.fallenbreath.lmspaster.mixins;
 
+import me.fallenbreath.fanetlib.api.packet.FanetlibPacketRegistrationCenter;
 import me.fallenbreath.lmspaster.network.LmsNetwork;
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.loader.api.FabricLoader;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-public class LitematicaServerPasterMod implements ModInitializer
+@Mixin(FanetlibPacketRegistrationCenter.class)
+public abstract class FanetlibPacketRegistrationCenterMixin
 {
-	public static final Logger LOGGER = LogManager.getLogger();
-
-	public static final String MOD_NAME = "Litematica Server Paster";
-	public static final String MOD_ID = "litematica-server-paster";
-	public static String VERSION = null;
-
-	@Override
-	public void onInitialize()
+	@Inject(method = "common", at = @At("HEAD"), remap = false)
+	private static void register(CallbackInfo ci)
 	{
-		VERSION = FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow(RuntimeException::new).getMetadata().getVersion().getFriendlyString();
-
-		LmsNetwork.initEvents();
+		LmsNetwork.initPackets();
 	}
 }

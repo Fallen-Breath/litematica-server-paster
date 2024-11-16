@@ -4,6 +4,7 @@
   "package": "me.fallenbreath.lmspaster.mixins",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "FanetlibPacketRegistrationCenterMixin",
     "ServerPlayNetworkHandlerAccessor"
   ],
   "client": [
