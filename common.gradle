@@ -6,10 +6,6 @@ apply plugin: 'me.fallenbreath.yamlang'
 
 int mcVersion = project.mcVersion
 
-preprocess {
-	tabIndentation = true
-}
-
 repositories {
 	maven {
 		url 'https://masa.dy.fi/maven'
@@ -49,8 +45,14 @@ dependencies {
 	}
 
 	// dependencies
-	modImplementation "fi.dy.masa.malilib:${project.malilib_version}"
-	modImplementation "curse.maven:litematica-308892:${project.litematica_file_id}"
+	def malilibMavenBase = 'fi.dy.masa.malilib'
+	def litematicaMavenBase = 'curse.maven:litematica-308892'
+	if (mcVersion >= 12103) {
+		malilibMavenBase = 'com.github.sakura-ryoko:malilib'
+		litematicaMavenBase = 'com.github.sakura-ryoko:litematica'
+	}
+	modImplementation "${malilibMavenBase}:${project.malilib_version}"
+	modImplementation "${litematicaMavenBase}:${project.litematica_file_id}"
 
 	def fanetlibMcVer = mcVersion >= 12100 ? '1.21' : mcVersion >= 12006 ? '1.20.6' : mcVersion >= 12002 ? '1.20.2': '1.15.2'
 	include(modImplementation("me.fallenbreath:fanetlib:${project.fanetlib_version}-mc${fanetlibMcVer}"))
@@ -97,10 +99,6 @@ loom {
 			ideConfigGenerated false
 		}
 	}
-}
-
-remapJar {
-	remapperIsolation = true
 }
 
 String modVersionSuffix = ''
