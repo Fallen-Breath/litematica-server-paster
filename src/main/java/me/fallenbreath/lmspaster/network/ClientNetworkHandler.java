@@ -21,6 +21,7 @@
 package me.fallenbreath.lmspaster.network;
 
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
+import me.fallenbreath.lmspaster.utils.NbtUtils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -41,13 +42,13 @@ public class ClientNetworkHandler
 		switch (id)
 		{
 			case LmsNetwork.S2C.HI:
-				String serverModVersion = nbt.getString("mod_version");
+				String serverModVersion = NbtUtils.getStringOrEmpty(nbt, "mod_version");
 				LitematicaServerPasterMod.LOGGER.info("Server is installed with mod {} @ {}", LitematicaServerPasterMod.MOD_NAME, serverModVersion);
 				supportPackets = MINIMUM_SUPPORT_PACKETS.clone();
 				break;
 
 			case LmsNetwork.S2C.ACCEPT_PACKETS:
-				supportPackets = nbt.getIntArray("ids");
+				supportPackets = NbtUtils.getIntArrayOrEmpty(nbt, "ids");
 				LitematicaServerPasterMod.LOGGER.debug("Packet IDs supported by the server: {}", supportPackets);
 				break;
 		}

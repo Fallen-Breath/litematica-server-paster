@@ -22,6 +22,7 @@ package me.fallenbreath.lmspaster.network;
 
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
 import me.fallenbreath.lmspaster.mixins.ServerPlayNetworkHandlerAccessor;
+import me.fallenbreath.lmspaster.utils.NbtUtils;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -48,7 +49,7 @@ public class ServerNetworkHandler
 		switch (id)
 		{
 			case LmsNetwork.C2S.HI:
-				String clientModVersion = nbt.getString("mod_version");
+				String clientModVersion = NbtUtils.getStringOrEmpty(nbt, "mod_version");
 				LitematicaServerPasterMod.LOGGER.info("Player {} connected with {} @ {}", playerName, LitematicaServerPasterMod.MOD_NAME, clientModVersion);
 				player.networkHandler.sendPacket(LmsNetwork.S2C.packet(LmsNetwork.S2C.HI, nbt2 -> {
 					nbt2.putString("mod_version", LitematicaServerPasterMod.VERSION);
@@ -60,7 +61,7 @@ public class ServerNetworkHandler
 
 			case LmsNetwork.C2S.CHAT:
 				LitematicaServerPasterMod.LOGGER.debug("Received chat from player {}", playerName);
-				String message = nbt.getString("chat");
+				String message = NbtUtils.getStringOrEmpty(nbt, "chat");
 				triggerCommand(player, playerName, message);
 				break;
 
@@ -70,7 +71,7 @@ public class ServerNetworkHandler
 				break;
 
 			case LmsNetwork.C2S.VERY_LONG_CHAT_CONTENT:
-				String segment = nbt.getString("segment");
+				String segment = NbtUtils.getStringOrEmpty(nbt, "segment");
 				LitematicaServerPasterMod.LOGGER.debug("Received VERY_LONG_CHAT_CONTENT from player {} with length {}", playerName, segment.length());
 				getVeryLongChatBuilder(player).ifPresent(builder -> builder.append(segment));
 				break;
