@@ -8,16 +8,16 @@ int mcVersion = project.mcVersion
 
 repositories {
 	maven {
-		url 'https://masa.dy.fi/maven'
+		url = 'https://masa.dy.fi/maven'
 	}
 	maven {
 		url = 'https://maven.fallenbreath.me/releases'
 	}
 	maven {
-		url = 'https://jitpack.io'
+		url = 'https://maven.fallenbreath.me/jitpack'
 	}
 	maven {
-		url 'https://www.cursemaven.com'
+		url = 'https://www.cursemaven.com'
 	}
 }
 
@@ -59,7 +59,7 @@ dependencies {
 
 	// runtime mods
 	if (mcVersion < 11904) {
-		modRuntimeOnly(mcVersion < 11900 ? "com.github.astei:lazydfu:0.1.2" : "com.github.Fallen-Breath:lazydfu:a7cfc44c0c")
+		modRuntimeOnly("com.github.Fallen-Breath:lazydfu:${mcVersion < 11900 ? "0.1.2" : "a7cfc44c0c"}")
 	}
 	modRuntimeOnly 'me.fallenbreath:mixin-auditor:0.1.0'
 }
