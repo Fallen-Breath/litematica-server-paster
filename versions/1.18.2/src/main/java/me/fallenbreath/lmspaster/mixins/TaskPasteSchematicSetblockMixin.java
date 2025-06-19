@@ -34,6 +34,7 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.command.argument.BlockArgumentParser;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtHelper;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.WorldChunk;
@@ -41,17 +42,24 @@ import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Collection;
 import java.util.function.Consumer;
 
+//#if MC >= 12106
+//$$ import net.minecraft.storage.NbtWriteView;
+//$$ import net.minecraft.util.ErrorReporter;
+//#endif
+
 @Mixin(TaskPasteSchematicPerChunkCommand.class)
 public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematicPerChunkBase
 {
 	@Shadow(remap = false) @Final protected String setBlockCommand;
 
+	@Unique
 	private Chunk currentSchematicChunk;
 
 	public TaskPasteSchematicSetblockMixin(Collection<SchematicPlacement> placements, LayerRange range, boolean changedBlocksOnly)
@@ -59,6 +67,7 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 		super(placements, range, changedBlocksOnly);
 	}
 
+	@Unique
 	private static final String CUSTOM_COMMAND_PREFIX = String.format("##%s##", LitematicaServerPasterMod.MOD_ID);
 
 	@ModifyVariable(
@@ -106,6 +115,7 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 		}
 	}
 
+	@Unique
 	@Nullable
 	private String customCommand = null;
 
@@ -201,6 +211,7 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 		return this.useCustomLongChatIfPossible(obj);
 	}
 
+	@Unique
 	private Object useCustomLongChatIfPossible(Object obj)
 	{
 		if (this.customCommand != null && obj instanceof String)
@@ -211,7 +222,9 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 		return obj;
 	}
 
+	@Unique
 	private Entity currentEntity;
+	@Unique
 	private boolean cancelThisEntityPaste;
 
 	@Inject(method = "summonEntity", at = @At("HEAD"), remap = false)
@@ -245,14 +258,24 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 					return baseCommand;
 				}
 
+				//#if MC >= 12106
+				//$$ NbtCompound tag;
+				//$$ try (ErrorReporter.Logging logging = new ErrorReporter.Logging(this.currentEntity.getErrorReporterContext(), LitematicaServerPasterMod.LOGGER))
+				//$$ {
+				//$$     var view = NbtWriteView.create(logging, this.currentEntity.getRegistryManager());
+				//$$     this.currentEntity.writeData(view);
+				//$$     tag = view.getNbt();
+				//$$ }
+				//#else
 				NbtCompound tag = this.currentEntity.writeNbt(new NbtCompound());
+				//#endif
 
 				// like net.minecraft.client.Keyboard.copyEntity
 				tag.remove("UUID");
 				tag.remove("Pos");
 				tag.remove("Dimension");
 
-				String tagString = tag.toString();
+				String tagString = NbtHelper.toPrettyPrintedText(tag).getString();
 				String command = baseCommand + " " + tagString;
 				if (ClientNetworkHandler.canSendCommand(command))
 				{

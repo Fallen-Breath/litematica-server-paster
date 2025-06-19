@@ -33,6 +33,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.Chunk;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -40,6 +41,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(TaskPasteSchematicSetblock.class)
 public abstract class TaskPasteSchematicSetblockMixin
 {
+	@Unique
 	private Chunk currentSchematicChunk;
 
 	@ModifyVariable(
@@ -95,6 +97,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 		player.sendChatMessage(string);
 	}
 
+	@Unique
 	private Entity currentEntity;
 
 	@ModifyVariable(

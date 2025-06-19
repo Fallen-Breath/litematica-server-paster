@@ -37,8 +37,13 @@ import net.minecraft.world.chunk.Chunk;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+//#if MC >= 11700
+//$$ import net.minecraft.nbt.NbtHelper;
+//#endif
 
 @Mixin(TaskPasteSchematicPerChunkCommand.class)
 public abstract class TaskPasteSchematicSetblockMixin
@@ -46,6 +51,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 	@Shadow(remap = false)
 	protected abstract void sendCommandToServer(String command, ClientPlayerEntity player);
 
+	@Unique
 	private Chunk currentSchematicChunk;
 
 	//#if MC >= 11700
@@ -71,6 +77,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 		//#endif
 	}
 
+	@Unique
 	@Nullable
 	private String customCommand = null;
 
@@ -146,6 +153,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 		}
 	}
 
+	@Unique
 	private Entity currentEntity;
 
 	//#if MC >= 11700
@@ -213,7 +221,11 @@ public abstract class TaskPasteSchematicSetblockMixin
 				tag.remove("Pos");
 				tag.remove("Dimension");
 
-				String tagString = tag.toString();
+				//#if MC >= 11700
+				//$$ String tagString = NbtHelper.toPrettyPrintedText(tag).getString();
+				//#else
+				String tagString = tag.toText().getString();
+				//#endif
 				String command = baseCommand + " " + tagString;
 				if (ClientNetworkHandler.canSendCommand(command))
 				{
