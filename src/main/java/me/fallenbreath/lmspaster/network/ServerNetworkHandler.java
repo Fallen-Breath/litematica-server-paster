@@ -23,6 +23,7 @@ package me.fallenbreath.lmspaster.network;
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
 import me.fallenbreath.lmspaster.mixins.ServerPlayNetworkHandlerAccessor;
 import me.fallenbreath.lmspaster.utils.NbtUtils;
+import me.fallenbreath.lmspaster.utils.PlayerUtils;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -93,9 +94,9 @@ public class ServerNetworkHandler
 		else
 		{
 			LitematicaServerPasterMod.LOGGER.debug("Player {} is sending a command with length {}", playerName, command.length());
-			Objects.requireNonNull(player.getServer()).execute(
+			Objects.requireNonNull(PlayerUtils.getServerFromPlayer(player)).execute(
 					//#if MC >= 11900
-					//$$ () -> player.getServer().getCommandManager().executeWithPrefix(player.getCommandSource(), command)
+					//$$ () -> PlayerUtils.getServerFromPlayer(player).getCommandManager().executeWithPrefix(player.getCommandSource(), command)
 					//#else
 					() -> ((ServerPlayNetworkHandlerAccessor)player.networkHandler).invokeExecuteCommand(command)
 					//#endif
