@@ -28,16 +28,16 @@ import fi.dy.masa.litematica.util.PasteNbtBehavior;
 import fi.dy.masa.malilib.util.LayerRange;
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
 import me.fallenbreath.lmspaster.network.ClientNetworkHandler;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.command.argument.BlockArgumentParser;
-import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.commands.arguments.blocks.BlockStateParser;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunk;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -50,8 +50,8 @@ import java.util.Collection;
 import java.util.function.Consumer;
 
 //#if MC >= 12106
-//$$ import net.minecraft.storage.NbtWriteView;
-//$$ import net.minecraft.util.ErrorReporter;
+//$$ import net.minecraft.world.level.storage.TagValueOutput;
+//$$ import net.minecraft.util.ProblemReporter;
 //#endif
 
 @Mixin(TaskPasteSchematicPerChunkCommand.class)
@@ -60,7 +60,7 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 	@Shadow(remap = false) @Final protected String setBlockCommand;
 
 	@Unique
-	private Chunk currentSchematicChunk;
+	private ChunkAccess currentSchematicChunk;
 
 	public TaskPasteSchematicSetblockMixin(Collection<SchematicPlacement> placements, LayerRange range, boolean changedBlocksOnly)
 	{
@@ -91,7 +91,7 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 			//#else
 			sendCommandToServer
 			//#endif
-			(String command, ClientPlayerEntity player)
+			(String command, LocalPlayer player)
 	{
 		if (command.startsWith(CUSTOM_COMMAND_PREFIX))
 		{
@@ -120,13 +120,13 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 	private String customCommand = null;
 
 	@Inject(method = "pasteBlock", at = @At("HEAD"), remap = false)
-	private void recordCurrentSchematicChunk(BlockPos pos, WorldChunk schematicChunk, Chunk clientChunk, boolean ignoreLimit, CallbackInfo ci)
+	private void recordCurrentSchematicChunk(BlockPos pos, LevelChunk schematicChunk, ChunkAccess clientChunk, boolean ignoreLimit, CallbackInfo ci)
 	{
 		this.currentSchematicChunk = schematicChunk;
 	}
 
 	@Inject(
-			method = "queueSetBlockCommand(IIILnet/minecraft/block/BlockState;Ljava/util/function/Consumer;)V",
+			method = "queueSetBlockCommand(IIILnet/minecraft/world/level/block/state/BlockState;Ljava/util/function/Consumer;)V",
 			slice = @Slice(
 					from = @At(
 							value = "FIELD",
@@ -154,10 +154,10 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 			if (blockEntity != null)
 			{
 				String cmdName = this.setBlockCommand;
-				String stateString = BlockArgumentParser.stringifyBlockState(state);
-				NbtCompound tag = blockEntity.createNbt(
+				String stateString = BlockStateParser.serialize(state);
+				CompoundTag tag = blockEntity.saveWithoutMetadata(
 						//#if MC >= 12006
-						//$$ this.world.getRegistryManager()
+						//$$ this.world.registryAccess()
 						//#endif
 				);
 				tag.remove("id");
@@ -176,7 +176,7 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 	}
 
 	@ModifyArg(
-			method = "queueSetBlockCommand(IIILnet/minecraft/block/BlockState;Ljava/util/function/Consumer;)V",
+			method = "queueSetBlockCommand(IIILnet/minecraft/world/level/block/state/BlockState;Ljava/util/function/Consumer;)V",
 			slice = @Slice(
 					from = @At(
 							value = "FIELD",
@@ -259,15 +259,15 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 				}
 
 				//#if MC >= 12106
-				//$$ NbtCompound tag;
-				//$$ try (ErrorReporter.Logging logging = new ErrorReporter.Logging(this.currentEntity.getErrorReporterContext(), LitematicaServerPasterMod.LOGGER))
+				//$$ CompoundTag tag;
+				//$$ try (ProblemReporter.ScopedCollector logging = new ProblemReporter.ScopedCollector(this.currentEntity.problemPath(), LitematicaServerPasterMod.LOGGER))
 				//$$ {
-				//$$     var view = NbtWriteView.create(logging, this.currentEntity.getRegistryManager());
-				//$$     this.currentEntity.writeData(view);
-				//$$     tag = view.getNbt();
+				//$$     var view = TagValueOutput.createWithContext(logging, this.currentEntity.registryAccess());
+				//$$     this.currentEntity.save(view);
+				//$$     tag = view.buildResult();
 				//$$ }
 				//#else
-				NbtCompound tag = this.currentEntity.writeNbt(new NbtCompound());
+				CompoundTag tag = this.currentEntity.saveWithoutId(new CompoundTag());
 				//#endif
 
 				// like net.minecraft.client.Keyboard.copyEntity
@@ -275,11 +275,11 @@ public abstract class TaskPasteSchematicSetblockMixin extends TaskPasteSchematic
 				tag.remove("Pos");
 				tag.remove("Dimension");
 
-				String tagString = NbtHelper.toPrettyPrintedText(tag).getString();
+				String tagString = NbtUtils.toPrettyComponent(tag).getString();
 				String command = baseCommand + " " + tagString;
 				if (ClientNetworkHandler.canSendCommand(command))
 				{
-					LitematicaServerPasterMod.LOGGER.info("Summoning entity {} with nbt tag", this.currentEntity.getType().getName().getString());
+					LitematicaServerPasterMod.LOGGER.info("Summoning entity {} with nbt tag", this.currentEntity.getType().getDescription().getString());
 					this.customCommand = command;
 				}
 			}

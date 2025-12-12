@@ -26,14 +26,14 @@ import fi.dy.masa.litematica.scheduler.tasks.TaskPasteSchematicPerChunkCommand;
 import fi.dy.masa.litematica.util.PasteNbtBehavior;
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
 import me.fallenbreath.lmspaster.network.ClientNetworkHandler;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.command.argument.BlockArgumentParser;
-import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.commands.arguments.blocks.BlockStateParser;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -42,21 +42,21 @@ import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 //#if MC >= 11700
-//$$ import net.minecraft.nbt.NbtHelper;
+//$$ import net.minecraft.nbt.NbtUtils;
 //#endif
 
 @Mixin(TaskPasteSchematicPerChunkCommand.class)
 public abstract class TaskPasteSchematicSetblockMixin
 {
 	@Shadow(remap = false)
-	protected abstract void sendCommandToServer(String command, ClientPlayerEntity player);
+	protected abstract void sendCommandToServer(String command, LocalPlayer player);
 
 	@Unique
-	private Chunk currentSchematicChunk;
+	private ChunkAccess currentSchematicChunk;
 
 	//#if MC >= 11700
 	//$$ @Inject(method = "pasteBlock", at = @At("HEAD"), remap = false)
-	//$$ private void recordCurrentSchematicChunk(BlockPos pos, @Coerce Chunk schematicChunk, Chunk clientChunk, CallbackInfo ci)
+	//$$ private void recordCurrentSchematicChunk(BlockPos pos, @Coerce ChunkAccess schematicChunk, ChunkAccess clientChunk, CallbackInfo ci)
 	//#else
 	@ModifyVariable(
 			method = "processBox",
@@ -68,7 +68,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 			remap = false,
 			ordinal = 0
 	)
-	private Chunk recordCurrentSchematicChunk(Chunk schematicChunk)
+	private ChunkAccess recordCurrentSchematicChunk(ChunkAccess schematicChunk)
 	//#endif
 	{
 		this.currentSchematicChunk = schematicChunk;
@@ -85,12 +85,12 @@ public abstract class TaskPasteSchematicSetblockMixin
 			method = "sendCommand",
 			at = @At(
 					value = "INVOKE",
-					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;sendCommandToServer(Ljava/lang/String;Lnet/minecraft/client/network/ClientPlayerEntity;)V",
+					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;sendCommandToServer(Ljava/lang/String;Lnet/minecraft/client/player/LocalPlayer;)V",
 					remap = true
 			),
 			remap = false
 	)
-	private void modifyCommand(TaskPasteSchematicPerChunkCommand instance, String command, ClientPlayerEntity player)
+	private void modifyCommand(TaskPasteSchematicPerChunkCommand instance, String command, LocalPlayer player)
 	{
 		// maybe be modified to null cuz we do that in useCustomLongChatPacketToPasteEntityNbtDirectly
 		if (command == null)
@@ -118,12 +118,12 @@ public abstract class TaskPasteSchematicSetblockMixin
 			method = "sendSetBlockCommand",
 			at = @At(
 					value = "INVOKE",
-					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;sendCommand(Ljava/lang/String;Lnet/minecraft/client/network/ClientPlayerEntity;)V",
+					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;sendCommand(Ljava/lang/String;Lnet/minecraft/client/player/LocalPlayer;)V",
 					remap = true
 			),
 			remap = false
 	)
-	private void useCustomLongChatPacketToPasteBlockNbtDirectly(int x, int y, int z, BlockState state, ClientPlayerEntity player, CallbackInfo ci)
+	private void useCustomLongChatPacketToPasteBlockNbtDirectly(int x, int y, int z, BlockState state, LocalPlayer player, CallbackInfo ci)
 	{
 		// only works when PasteNbtBehavior equals NONE
 		if (Configs.Generic.PASTE_NBT_BEHAVIOR.getOptionListValue() != PasteNbtBehavior.NONE)
@@ -136,8 +136,8 @@ public abstract class TaskPasteSchematicSetblockMixin
 			if (blockEntity != null)
 			{
 				String cmdName = Configs.Generic.PASTE_COMMAND_SETBLOCK.getStringValue();
-				String stateString = BlockArgumentParser.stringifyBlockState(state);
-				NbtCompound tag = blockEntity.writeNbt(new NbtCompound());
+				String stateString = BlockStateParser.serialize(state);
+				CompoundTag tag = blockEntity.save(new CompoundTag());
 				tag.remove("id");
 				tag.remove("x");
 				tag.remove("y");
@@ -196,7 +196,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 			method = "summonEntities",
 			at = @At(
 					value = "INVOKE",
-					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;sendCommand(Ljava/lang/String;Lnet/minecraft/client/network/ClientPlayerEntity;)V",
+					target = "Lfi/dy/masa/litematica/scheduler/tasks/TaskPasteSchematicPerChunkCommand;sendCommand(Ljava/lang/String;Lnet/minecraft/client/player/LocalPlayer;)V",
 					remap = true
 			),
 			remap = false
@@ -214,7 +214,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 					return null;
 				}
 
-				NbtCompound tag = this.currentEntity.writeNbt(new NbtCompound());
+				CompoundTag tag = this.currentEntity.saveWithoutId(new CompoundTag());
 
 				// like net.minecraft.client.Keyboard.copyEntity
 				tag.remove("UUID");
@@ -222,14 +222,14 @@ public abstract class TaskPasteSchematicSetblockMixin
 				tag.remove("Dimension");
 
 				//#if MC >= 11700
-				//$$ String tagString = NbtHelper.toPrettyPrintedText(tag).getString();
+				//$$ String tagString = NbtUtils.toPrettyComponent(tag).getString();
 				//#else
-				String tagString = tag.toText().getString();
+				String tagString = tag.getPrettyDisplay().getString();
 				//#endif
 				String command = baseCommand + " " + tagString;
 				if (ClientNetworkHandler.canSendCommand(command))
 				{
-					LitematicaServerPasterMod.LOGGER.info("Summoning entity {} with nbt tag", this.currentEntity.getType().getName().getString());
+					LitematicaServerPasterMod.LOGGER.info("Summoning entity {} with nbt tag", this.currentEntity.getType().getDescription().getString());
 					this.customCommand = command;
 				}
 			}

@@ -25,8 +25,8 @@ import me.fallenbreath.lmspaster.mixins.ServerPlayNetworkHandlerAccessor;
 import me.fallenbreath.lmspaster.utils.NbtUtils;
 import me.fallenbreath.lmspaster.utils.PlayerUtils;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.network.ServerPlayNetworkHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 
 import java.util.Map;
 import java.util.Objects;
@@ -35,14 +35,14 @@ import java.util.WeakHashMap;
 
 public class ServerNetworkHandler
 {
-	private static final Map<ServerPlayNetworkHandler, StringBuilder> VERY_LONG_CHATS = new WeakHashMap<>();
+	private static final Map<ServerGamePacketListenerImpl, StringBuilder> VERY_LONG_CHATS = new WeakHashMap<>();
 
-	private static Optional<StringBuilder> getVeryLongChatBuilder(ServerPlayerEntity player)
+	private static Optional<StringBuilder> getVeryLongChatBuilder(ServerPlayer player)
 	{
-		return Optional.ofNullable(VERY_LONG_CHATS.get(player.networkHandler));
+		return Optional.ofNullable(VERY_LONG_CHATS.get(player.connection));
 	}
 
-	public static void handleClientPacket(LmsPasterPacket packet, ServerPlayerEntity player)
+	public static void handleClientPacket(LmsPasterPacket packet, ServerPlayer player)
 	{
 		String playerName = player.getName().getString();
 		int id = packet.getPacketId();
@@ -52,10 +52,10 @@ public class ServerNetworkHandler
 			case LmsNetwork.C2S.HI:
 				String clientModVersion = NbtUtils.getStringOrEmpty(nbt, "mod_version");
 				LitematicaServerPasterMod.LOGGER.info("Player {} connected with {} @ {}", playerName, LitematicaServerPasterMod.MOD_NAME, clientModVersion);
-				player.networkHandler.sendPacket(LmsNetwork.S2C.packet(LmsNetwork.S2C.HI, nbt2 -> {
+				player.connection.send(LmsNetwork.S2C.packet(LmsNetwork.S2C.HI, nbt2 -> {
 					nbt2.putString("mod_version", LitematicaServerPasterMod.VERSION);
 				}));
-				player.networkHandler.sendPacket(LmsNetwork.S2C.packet(LmsNetwork.S2C.ACCEPT_PACKETS, nbt2 -> {
+				player.connection.send(LmsNetwork.S2C.packet(LmsNetwork.S2C.ACCEPT_PACKETS, nbt2 -> {
 					nbt2.putIntArray("ids", LmsNetwork.C2S.ALL_PACKET_IDS);
 				}));
 				break;
@@ -68,7 +68,7 @@ public class ServerNetworkHandler
 
 			case LmsNetwork.C2S.VERY_LONG_CHAT_START:
 				LitematicaServerPasterMod.LOGGER.debug("Received VERY_LONG_CHAT_START from player {}", playerName);
-				VERY_LONG_CHATS.put(player.networkHandler, new StringBuilder());
+				VERY_LONG_CHATS.put(player.connection, new StringBuilder());
 				break;
 
 			case LmsNetwork.C2S.VERY_LONG_CHAT_CONTENT:
@@ -80,12 +80,12 @@ public class ServerNetworkHandler
 			case LmsNetwork.C2S.VERY_LONG_CHAT_END:
 				LitematicaServerPasterMod.LOGGER.debug("Received VERY_LONG_CHAT_END from player {}", playerName);
 				getVeryLongChatBuilder(player).ifPresent(builder ->triggerCommand(player, playerName, builder.toString()));
-				VERY_LONG_CHATS.remove(player.networkHandler);
+				VERY_LONG_CHATS.remove(player.connection);
 				break;
 		}
 	}
 
-	private static void triggerCommand(ServerPlayerEntity player, String playerName, String command)
+	private static void triggerCommand(ServerPlayer player, String playerName, String command)
 	{
 		if (command.isEmpty())
 		{
@@ -96,9 +96,15 @@ public class ServerNetworkHandler
 			LitematicaServerPasterMod.LOGGER.debug("Player {} is sending a command with length {}", playerName, command.length());
 			Objects.requireNonNull(PlayerUtils.getServerFromPlayer(player)).execute(
 					//#if MC >= 11900
-					//$$ () -> PlayerUtils.getServerFromPlayer(player).getCommandManager().executeWithPrefix(player.getCommandSource(), command)
+					//$$ () -> PlayerUtils.getServerFromPlayer(player).getCommands().performPrefixedCommand(
+					//$$ 		// remap loves to remap createCommandSourceStack() to createCommandSourceStackForNameResolution() from mc1.21.1 to mc1.21.3, very stupid
+					//$$ 		//#disable-remap
+					//$$ 		player.createCommandSourceStack(),
+					//$$ 		//#enable-remap
+					//$$ 		command
+					//$$ )
 					//#else
-					() -> ((ServerPlayNetworkHandlerAccessor)player.networkHandler).invokeExecuteCommand(command)
+					() -> ((ServerPlayNetworkHandlerAccessor)player.connection).invokeHandleCommand(command)
 					//#endif
 			);
 		}

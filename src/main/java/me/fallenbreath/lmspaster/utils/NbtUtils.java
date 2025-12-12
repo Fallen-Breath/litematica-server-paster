@@ -29,7 +29,7 @@ public class NbtUtils
 	public static String getStringOrEmpty(CompoundTag nbt, String key)
 	{
 		//#if MC >= 12105
-		//$$ return nbt.getString(key, "");
+		//$$ return nbt.getStringOr(key, "");
 		//#else
 		return nbt.getString(key);
 		//#endif

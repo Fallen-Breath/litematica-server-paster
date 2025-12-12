@@ -24,14 +24,14 @@ import fi.dy.masa.litematica.config.Configs;
 import fi.dy.masa.litematica.scheduler.tasks.TaskPasteSchematicSetblock;
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
 import me.fallenbreath.lmspaster.network.ClientNetworkHandler;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.command.arguments.BlockArgumentParser;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.commands.arguments.blocks.BlockStateParser;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -42,7 +42,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public abstract class TaskPasteSchematicSetblockMixin
 {
 	@Unique
-	private Chunk currentSchematicChunk;
+	private ChunkAccess currentSchematicChunk;
 
 	@ModifyVariable(
 			method = "processBox",
@@ -54,7 +54,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 			remap = false,
 			ordinal = 0
 	)
-	private Chunk recordCurrentSchematicChunk(Chunk chunkSchematic)
+	private ChunkAccess recordCurrentSchematicChunk(ChunkAccess chunkSchematic)
 	{
 		this.currentSchematicChunk = chunkSchematic;
 		return chunkSchematic;
@@ -64,12 +64,12 @@ public abstract class TaskPasteSchematicSetblockMixin
 			method = "sendSetBlockCommand",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendChatMessage(Ljava/lang/String;)V",
+					target = "Lnet/minecraft/client/player/LocalPlayer;chat(Ljava/lang/String;)V",
 					remap = true
 			),
 			remap = false
 	)
-	private void useCustomLongChatPacketToPasteBlockNbtDirectly(ClientPlayerEntity player, String string, /* function args -> */ int x, int y, int z, BlockState state, ClientPlayerEntity player_)
+	private void useCustomLongChatPacketToPasteBlockNbtDirectly(LocalPlayer player, String string, /* function args -> */ int x, int y, int z, BlockState state, LocalPlayer player_)
 	{
 		if (ClientNetworkHandler.isServerPasterAvailable())
 		{
@@ -77,8 +77,8 @@ public abstract class TaskPasteSchematicSetblockMixin
 			if (blockEntity != null)
 			{
 				String cmdName = Configs.Generic.PASTE_COMMAND_SETBLOCK.getStringValue();
-				String stateString = BlockArgumentParser.stringifyBlockState(state);
-				CompoundTag tag = blockEntity.toTag(new CompoundTag());
+				String stateString = BlockStateParser.serialize(state);
+				CompoundTag tag = blockEntity.save(new CompoundTag());
 				tag.remove("id");
 				tag.remove("x");
 				tag.remove("y");
@@ -94,7 +94,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 			}
 		}
 		// original behavior
-		player.sendChatMessage(string);
+		player.chat(string);
 	}
 
 	@Unique
@@ -120,12 +120,12 @@ public abstract class TaskPasteSchematicSetblockMixin
 			method = "summonEntities",
 			at = @At(
 					value = "INVOKE",
-					target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendChatMessage(Ljava/lang/String;)V",
+					target = "Lnet/minecraft/client/player/LocalPlayer;chat(Ljava/lang/String;)V",
 					remap = true
 			),
 			remap = false
 	)
-	private void useCustomLongChatPacketToPasteEntityNbtDirectly(ClientPlayerEntity player, String string)
+	private void useCustomLongChatPacketToPasteEntityNbtDirectly(LocalPlayer player, String string)
 	{
 		if (ClientNetworkHandler.isServerPasterAvailable())
 		{
@@ -137,7 +137,7 @@ public abstract class TaskPasteSchematicSetblockMixin
 					return;
 				}
 
-				CompoundTag tag = this.currentEntity.toTag(new CompoundTag());
+				CompoundTag tag = this.currentEntity.saveWithoutId(new CompoundTag());
 
 				// like net.minecraft.client.Keyboard.copyEntity
 				tag.remove("UUIDMost");
@@ -149,13 +149,13 @@ public abstract class TaskPasteSchematicSetblockMixin
 				String command = string + " " + tagString;
 				if (ClientNetworkHandler.canSendCommand(command))
 				{
-					LitematicaServerPasterMod.LOGGER.info("Summoning entity {} with nbt tag", this.currentEntity.getType().getName().getString());
+					LitematicaServerPasterMod.LOGGER.info("Summoning entity {} with nbt tag", this.currentEntity.getType().getDescription().getString());
 					ClientNetworkHandler.sendCommand(command);
 					return;
 				}
 			}
 		}
 		// original behavior
-		player.sendChatMessage(string);
+		player.chat(string);
 	}
 }

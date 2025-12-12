@@ -22,9 +22,9 @@ package me.fallenbreath.lmspaster.network;
 
 import me.fallenbreath.lmspaster.LitematicaServerPasterMod;
 import me.fallenbreath.lmspaster.utils.NbtUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.nbt.CompoundTag;
 
 import java.nio.charset.StandardCharsets;
@@ -35,7 +35,7 @@ public class ClientNetworkHandler
 	private static final int[] MINIMUM_SUPPORT_PACKETS = new int[]{LmsNetwork.C2S.HI, LmsNetwork.C2S.CHAT};
 	private static int[] supportPackets = new int[0];
 
-	public static void handleServerPacket(LmsPasterPacket packet, ClientPlayerEntity player)
+	public static void handleServerPacket(LmsPasterPacket packet, LocalPlayer player)
 	{
 		int id = packet.getPacketId();
 		CompoundTag nbt = packet.getNbt();
@@ -54,10 +54,10 @@ public class ClientNetworkHandler
 		}
 	}
 
-	public static void sendHiToTheServer(ClientPlayNetworkHandler clientPlayNetworkHandler)
+	public static void sendHiToTheServer(ClientPacketListener clientPlayNetworkHandler)
 	{
 		supportPackets = new int[0];
-		clientPlayNetworkHandler.sendPacket(LmsNetwork.C2S.packet(LmsNetwork.C2S.HI, nbt2 -> {
+		clientPlayNetworkHandler.send(LmsNetwork.C2S.packet(LmsNetwork.C2S.HI, nbt2 -> {
 			nbt2.putString("mod_version", LitematicaServerPasterMod.VERSION);
 		}));
 	}
@@ -105,10 +105,10 @@ public class ClientNetworkHandler
 			}
 			return;
 		}
-		ClientPlayNetworkHandler networkHandler = MinecraftClient.getInstance().getNetworkHandler();
+		ClientPacketListener networkHandler = Minecraft.getInstance().getConnection();
 		if (networkHandler != null)
 		{
-			networkHandler.sendPacket(LmsNetwork.C2S.packet(LmsNetwork.C2S.CHAT, nbt2 -> {
+			networkHandler.send(LmsNetwork.C2S.packet(LmsNetwork.C2S.CHAT, nbt2 -> {
 				nbt2.putString("chat", command);
 			}));
 		}
@@ -116,23 +116,23 @@ public class ClientNetworkHandler
 
 	private static void sendVeryLongCommand(String command)
 	{
-		ClientPlayNetworkHandler networkHandler = MinecraftClient.getInstance().getNetworkHandler();
+		ClientPacketListener networkHandler = Minecraft.getInstance().getConnection();
 		if (networkHandler != null)
 		{
 			final int segmentLength = 8000;  // ~ Short.MAX_VALUE / 4, where utf8 allows 4 bytes per char at most
 
-			networkHandler.sendPacket(LmsNetwork.C2S.packet(LmsNetwork.C2S.VERY_LONG_CHAT_START, nbt2 -> {}));
+			networkHandler.send(LmsNetwork.C2S.packet(LmsNetwork.C2S.VERY_LONG_CHAT_START, nbt2 -> {}));
 
 			for (int i = 0; i < command.length(); i+= segmentLength)
 			{
 				int j = Math.min(command.length(), i + segmentLength);
 				String segment = command.substring(i, j);
-				networkHandler.sendPacket(LmsNetwork.C2S.packet(LmsNetwork.C2S.VERY_LONG_CHAT_CONTENT, nbt2 -> {
+				networkHandler.send(LmsNetwork.C2S.packet(LmsNetwork.C2S.VERY_LONG_CHAT_CONTENT, nbt2 -> {
 					nbt2.putString("segment", segment);
 				}));
 			}
 
-			networkHandler.sendPacket(LmsNetwork.C2S.packet(LmsNetwork.C2S.VERY_LONG_CHAT_END, nbt2 -> {}));
+			networkHandler.send(LmsNetwork.C2S.packet(LmsNetwork.C2S.VERY_LONG_CHAT_END, nbt2 -> {}));
 		}
 	}
 }

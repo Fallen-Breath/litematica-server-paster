@@ -20,19 +20,19 @@
 
 package me.fallenbreath.lmspaster.mixins;
 
-import net.minecraft.server.network.ServerPlayNetworkHandler;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.spongepowered.asm.mixin.Mixin;
 
 //#if MC < 11900
 import org.spongepowered.asm.mixin.gen.Invoker;
 //#endif
 
-@Mixin(ServerPlayNetworkHandler.class)
+@Mixin(ServerGamePacketListenerImpl.class)
 public interface ServerPlayNetworkHandlerAccessor
 {
 	// not used in 1.19+
 	//#if MC < 11900
 	@Invoker
-	void invokeExecuteCommand(String command);
+	void invokeHandleCommand(String command);
 	//#endif
 }

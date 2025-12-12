@@ -21,18 +21,18 @@
 package me.fallenbreath.lmspaster.utils;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.NotNull;
 
 public class PlayerUtils
 {
 	@NotNull
-	public static MinecraftServer getServerFromPlayer(ServerPlayerEntity player)
+	public static MinecraftServer getServerFromPlayer(ServerPlayer player)
 	{
-		//#if MC >= 1.21.9
-		//$$ return player.getEntityWorld().getServer();
+		//#if MC >= 1.20
+		//$$ return player.serverLevel().getServer();
 		//#else
-		return player.getServerWorld().getServer();
+		return player.getLevel().getServer();
 		//#endif
 	}
 }
