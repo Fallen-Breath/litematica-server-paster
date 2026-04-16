@@ -1,32 +1,36 @@
+final int mcVersion = project.mcVersion
+final boolean unobfuscated = mcVersion >= 26_00_00
+
 apply plugin: 'maven-publish'
 apply plugin: 'com.github.hierynomus.license'
-apply plugin: 'fabric-loom'
+apply plugin: unobfuscated ? 'net.fabricmc.fabric-loom' : 'net.fabricmc.fabric-loom-remap'
 apply plugin: 'com.replaymod.preprocess'
 apply plugin: 'me.fallenbreath.yamlang'
-
-int mcVersion = project.mcVersion
 
 repositories {
 	maven {
 		url = 'https://maven.parchmentmc.org'
+		content { includeGroup('org.parchmentmc.data') }
 	}
 	maven {
 		url = 'https://masa.dy.fi/maven'
+		content { includeGroupAndSubgroups('fi.dy.masa') }
+	}
+	maven {
+		url = 'https://masa.dy.fi/maven/sakura-ryoko'
+		content { includeGroupAndSubgroups('fi.dy.masa') }
 	}
 	maven {
 		url = 'https://maven.fallenbreath.me/releases'
+		content { includeGroup('me.fallenbreath') }
 	}
 	maven {
 		url = 'https://maven.fallenbreath.me/jitpack'
+		content { includeGroupAndSubgroups('com.github') }
 	}
 	maven {
 		url = 'https://www.cursemaven.com'
 	}
-}
-
-// https://github.com/FabricMC/fabric-loader/issues/783
-configurations {
-	modRuntimeOnly.exclude group: 'net.fabricmc', module: 'fabric-loader'
 }
 
 configurations {
@@ -34,15 +38,30 @@ configurations {
 }
 
 dependencies {
+	def processDependency = { dep ->
+		// https://github.com/FabricMC/fabric-loader/issues/783
+		if (dep instanceof ModuleDependency) {
+			if (!(dep.group == 'net.fabricmc' && dep.name == 'fabric-loader')) {
+				dep.exclude group: 'net.fabricmc', module: 'fabric-loader'
+			}
+		}
+		return dep
+	}
+	def autoImplementation = { Object... args -> processDependency(unobfuscated ? implementation(*args) : modImplementation(*args)) }
+	def autoRuntimeOnly = { Object... args -> processDependency(unobfuscated ? runtimeOnly(*args) : modRuntimeOnly(*args)) }
+	def autoCompileOnly = { Object... args -> processDependency(unobfuscated ? compileOnly(*args) : modCompileOnly(*args)) }
+
 	// loom
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.layered() {
-		officialMojangMappings()
-		if (project.parchment_version.size() > 0) {
-			parchment("org.parchmentmc.data:parchment-${project.minecraft_version}:${project.parchment_version}@zip")
+	if (!unobfuscated) {
+		mappings loom.layered() {
+			officialMojangMappings()
+			if (project.parchment_version.size() > 0) {
+				parchment("org.parchmentmc.data:parchment-${project.minecraft_version}:${project.parchment_version}@zip")
+			}
 		}
 	}
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	autoImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
 	// compact stuffs
 	if (11700 <= mcVersion && mcVersion < 11800) {
@@ -55,27 +74,32 @@ dependencies {
 	// dependencies
 	def malilibMavenBase = 'fi.dy.masa.malilib'
 	def litematicaMavenBase = 'curse.maven:litematica-308892'
-	if (mcVersion >= 12103) {
+	if (mcVersion >= 260000) {
+		malilibMavenBase = 'fi.dy.masa.malilib'
+		litematicaMavenBase = "fi.dy.masa.litematica"
+	} else if (mcVersion >= 12103) {
 		malilibMavenBase = 'com.github.sakura-ryoko:malilib'
 		litematicaMavenBase = 'com.github.sakura-ryoko:litematica'
 	}
-	modImplementation "${malilibMavenBase}:${project.malilib_version}"
-	modImplementation "${litematicaMavenBase}:${project.litematica_file_id}"
+	autoImplementation "${malilibMavenBase}:${project.malilib_version}"
+	autoImplementation "${litematicaMavenBase}:${project.litematica_file_id}"
 
-	def fanetlibMcVer = mcVersion >= 12111 ? '1.21.11' : mcVersion >= 12100 ? '1.21.1' : mcVersion >= 12006 ? '1.20.6' : mcVersion >= 12002 ? '1.20.2': '1.15.2'
-	include(modImplementation("me.fallenbreath:fanetlib:${project.fanetlib_version}-mc${fanetlibMcVer}"))
+	def fanetlibMcVer = mcVersion >= 260000 ? '26.1.1' : mcVersion >= 12111 ? '1.21.11' : mcVersion >= 12100 ? '1.21.1' : mcVersion >= 12006 ? '1.20.6' : mcVersion >= 12002 ? '1.20.2': '1.15.2'
+	include(autoImplementation("me.fallenbreath:fanetlib:${project.fanetlib_version}-mc${fanetlibMcVer}"))
 
 	// runtime mods
 	if (mcVersion < 11904) {
-		modRuntimeOnly("com.github.Fallen-Breath:lazydfu:${mcVersion < 11900 ? "0.1.2" : "a7cfc44c0c"}")
+		autoRuntimeOnly("com.github.Fallen-Breath:lazydfu:${mcVersion < 11900 ? "0.1.2" : "a7cfc44c0c"}")
 	}
-	modRuntimeOnly 'me.fallenbreath:mixin-auditor:0.1.0'
+	autoRuntimeOnly 'me.fallenbreath:mixin-auditor:0.1.0'
 }
 
 String MIXIN_CONFIG_PATH = 'lmspaster.mixins.json'
 String LANG_DIR = 'assets/lmspaster/lang'
 JavaVersion JAVA_COMPATIBILITY
-if (mcVersion >= 12005) {
+if (mcVersion >= 260000) {
+	JAVA_COMPATIBILITY = JavaVersion.VERSION_25
+} else if (mcVersion >= 12005) {
 	JAVA_COMPATIBILITY = JavaVersion.VERSION_21
 } else if (mcVersion >= 11800) {
 	JAVA_COMPATIBILITY = JavaVersion.VERSION_17
@@ -98,12 +122,12 @@ loom {
 		def auditVmArgs = [*commonVmArgs, '-DmixinAuditor.audit=true']
 		serverMixinAudit {
 			server()
-            vmArgs auditVmArgs
+			vmArgs auditVmArgs
 			ideConfigGenerated false
 		}
 		clientMixinAudit {
 			client()
-            vmArgs auditVmArgs
+			vmArgs auditVmArgs
 			ideConfigGenerated false
 		}
 	}
@@ -192,8 +216,9 @@ java {
 }
 
 jar {
+	inputs.property "archives_base_name", project.archives_base_name
 	from(rootProject.file('LICENSE')) {
-		rename { "${it}_${project.archives_base_name}" }
+		rename { "${it}_${inputs.properties.archives_base_name}" }
 	}
 }
 
